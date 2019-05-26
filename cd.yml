@@ -1,0 +1,69 @@
+---
+kind: pipeline
+name: api
+
+platform:
+  os: linux
+  arch: amd64
+
+steps:
+  - name: build
+    image: golang
+    commands:
+      - ./api/cd/build.sh
+    environment:
+      DARKSKYAPIKEY:
+        from_secret: darkskyapikey
+      environment: dev
+    when:
+      event:
+        exclude:
+          - tag
+
+  - name: test
+    image: golang
+    commands:
+      - ./api/cd/test.sh
+    when:
+      event:
+        exclude:
+          - tag
+
+  - name: finalize
+    image: docker:git
+    commands:
+      - "echo \"Set image and deployment tags\""
+      - git fetch --tags
+      - "echo -n \"latest,${DRONE_COMMIT}\" > .tags"
+    when:
+      event:
+        exclude:
+          - tag
+
+  - name: docker-publish
+    image: plugins/docker
+    settings:
+      autotag: true
+      password:
+        from_secret: dockerpass
+      repo: alicews/alice
+      username: alicews
+    when:
+      branch:
+        - master
+
+  - name: deploy
+    image: sinlead/drone-kubectl
+    commands:
+      - ./api/cd/kubernetes/deploy.sh
+    settings:
+      kubernetes_cert:
+        from_secret: k8s_cert
+      kubernetes_server:
+        from_secret: k8s_server
+      kubernetes_token:
+        from_secret: k8s_token
+    when:
+      branch:
+        - master
+

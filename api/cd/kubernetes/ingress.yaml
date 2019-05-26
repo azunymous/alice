@@ -1,0 +1,14 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: alice-http
+  namespace: dev
+spec:
+  rules:
+  - host: api.alice.ws
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: alice
+          servicePort: 80
