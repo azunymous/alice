@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: alice-web
+  namespace: dev
+spec:
+  ports:
+  - port: 80
+    targetPort: 3000
+  selector:
+    app: alice-web
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alice-web
+  namespace: dev
+spec:
+  selector:
+    matchLabels:
+      app: alice-web
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: alice-web
+    spec:
+      containers:
+      - name: alice-web
+        image: alicews/alice-web:latest
+        env:
+          - name: APIURL
+            value: "api.alice.ws"
+        ports:
+        - containerPort: 3000
+        livenessProbe:
+              httpGet:
+                path: /healthcheck
+                port: 3000
