@@ -66,7 +66,7 @@ func (DB *DB) Register(email, username, password string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	go DB.registerInDatabase(email, username, string(hashedPwd))
+	DB.registerInDatabase(email, username, string(hashedPwd))
 	token, tokenErr := generateToken(username)
 	if tokenErr != nil {
 		return "", tokenErr
