@@ -67,3 +67,48 @@ steps:
       branch:
         - master
 
+---
+kind: pipeline
+name: client
+
+steps:
+  - name: start
+    image: docker:git
+    commands:
+      - "echo \"Set image and deployment tags\""
+      - git fetch --tags
+      - "echo -n \"latest,${DRONE_COMMIT}\" > .tags"
+    when:
+      branch:
+        - master
+      event:
+        exclude:
+          - tag
+
+  - name: docker-publish
+    image: plugins/docker
+    settings:
+      autotag: true
+      dockerfile: web/Dockerfile
+      password:
+        from_secret: dockerpass
+      repo: alicews/alice-web
+      username: alicews
+    when:
+      branch:
+        - master
+
+  - name: deploy
+    image: sinlead/drone-kubectl
+    commands:
+      - ./web/cd/kubernetes/deploy.sh
+    settings:
+      kubernetes_cert:
+        from_secret: k8s_cert
+      kubernetes_server:
+        from_secret: k8s_server
+      kubernetes_token:
+        from_secret: k8s_token
+    when:
+      branch:
+        - master
