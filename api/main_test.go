@@ -13,6 +13,8 @@ import (
 	"testing"
 )
 
+var tokenKey = []byte("KEYGOESHERE")
+
 func Test_healthcheckHandler(t *testing.T) {
 	endpoint := "/healthcheck"
 	method := "GET"
@@ -40,9 +42,8 @@ func Test_homepageHandler(t *testing.T) {
 	expected := `{"V" : "1", "data" : "ALICE API"}`
 	checkBody(rr.Body.String(), expected, t)
 }
-
 func Test_RegisterSuccess(t *testing.T) {
-	userDB = users.NewDB(nil)
+	userDB = users.NewDB(nil, tokenKey)
 	endpoint := "/register"
 	method := "POST"
 
@@ -69,7 +70,7 @@ func Test_RegisterSuccess(t *testing.T) {
 }
 
 func Test_RegisterFailureMissingField(t *testing.T) {
-	userDB = users.NewDB(nil)
+	userDB = users.NewDB(nil, tokenKey)
 	endpoint := "/register"
 	method := "POST"
 
@@ -89,12 +90,34 @@ func Test_RegisterFailureMissingField(t *testing.T) {
 	}
 }
 
+func Test_RegisterFailureFieldsEmpty(t *testing.T) {
+	userDB = users.NewDB(nil, tokenKey)
+	endpoint := "/register"
+	method := "POST"
+
+	data := url.Values{}
+	data.Set("email", "")
+	data.Set("username", "alice")
+	data.Set("password", "")
+
+	rr := createRequestAndServe(method, endpoint, strings.NewReader(data.Encode()))
+
+	// Check the status code is what we expect.
+	checkStatusCode(rr.Code, http.StatusBadRequest, t)
+
+	_, err := userDB.Login("alice", "Password123")
+
+	if err == nil {
+		t.Errorf("Succeded to login with registered user, should've failed")
+	}
+}
+
 func Test_LoginSuccess(t *testing.T) {
 	store := users.NewMemoryStore()
 	password, _ := bcrypt.GenerateFromPassword([]byte("Password123"), 10)
 	user, _ := users.NewUser("user:alice@example.com:alice:" + string(password))
 	_ = store.Add(*user)
-	userDB = users.NewDB(store)
+	userDB = users.NewDB(store, tokenKey)
 
 	endpoint := "/login"
 	method := "POST"
@@ -120,7 +143,7 @@ func Test_LoginFailure(t *testing.T) {
 	password, _ := bcrypt.GenerateFromPassword([]byte("Password123"), 10)
 	user, _ := users.NewUser("user:alice@example.com:alice:" + string(password))
 	_ = store.Add(*user)
-	userDB = users.NewDB(store)
+	userDB = users.NewDB(store, tokenKey)
 
 	endpoint := "/login"
 	method := "POST"
@@ -136,7 +159,68 @@ func Test_LoginFailure(t *testing.T) {
 
 	response := &userResponse{}
 	_ = json.Unmarshal(rr.Body.Bytes(), response)
-	checkResponse(response, "FAILURE: crypto/bcrypt: hashedPassword is not the hash of the given password", t)
+	checkResponse(response, "FAILURE", t)
+	checkError(response, "crypto/bcrypt: hashedPassword is not the hash of the given password", t)
+
+}
+
+func Test_FullPathToVerifyHandlerSuccess(t *testing.T) {
+	userDB = users.NewDB(nil, tokenKey)
+	endpoint := "/verify"
+	method := "POST"
+
+	registerToken, _ := userDB.Register("alice@alice.ws", "alice", "Password123")
+	loginToken, _ := userDB.Login("alice", "Password123")
+
+	registerData := url.Values{}
+	registerData.Set("token", registerToken)
+
+	loginData := url.Values{}
+	loginData.Set("token", loginToken)
+
+	registerR := createRequestAndServe(method, endpoint, strings.NewReader(registerData.Encode()))
+	loginR := createRequestAndServe(method, endpoint, strings.NewReader(loginData.Encode()))
+
+	// Check the status code is what we expect.
+	checkStatusCode(registerR.Code, http.StatusOK, t)
+	checkStatusCode(loginR.Code, http.StatusOK, t)
+
+	registerResponse := &userResponse{}
+	_ = json.Unmarshal(registerR.Body.Bytes(), registerResponse)
+	loginResponse := &userResponse{}
+	_ = json.Unmarshal(loginR.Body.Bytes(), loginResponse)
+	const want = "SUCCESS"
+	if registerResponse.Status != want {
+		t.Errorf("Verify response returned wrong status: got %v want %s", registerResponse.Status, want)
+	}
+	if loginResponse.Status != want {
+		t.Errorf("Verify response returned wrong status: got %v want %s", loginResponse.Status, want)
+	}
+
+}
+
+func Test_InvalidVerifyHandlerFailure(t *testing.T) {
+	userDB = users.NewDB(nil, tokenKey)
+	endpoint := "/verify"
+	method := "POST"
+
+	registerToken, _ := userDB.Register("alice@alice.ws", "alice", "Password123")
+	split := strings.Split(registerToken, ".")
+	registerToken = split[0] + "." + split[2] + "." + split[1]
+	registerData := url.Values{}
+	registerData.Set("token", registerToken)
+
+	registerR := createRequestAndServe(method, endpoint, strings.NewReader(registerData.Encode()))
+
+	// Check the status code is what we expect.
+	checkStatusCode(registerR.Code, http.StatusUnauthorized, t)
+
+	registerResponse := &userResponse{}
+	_ = json.Unmarshal(registerR.Body.Bytes(), registerResponse)
+	const want = "FAILURE"
+	if registerResponse.Status != want {
+		t.Errorf("Verify response returned wrong status: got %v want %s", registerResponse.Status, want)
+	}
 
 }
 
@@ -177,6 +261,13 @@ func checkResponse(response *userResponse, expectedStatus string, t *testing.T) 
 	if response.Status != expectedStatus {
 		t.Errorf("handler returned unexpected body: got %v want %v",
 			response.Status, expectedStatus)
+	}
+}
+
+func checkError(response *userResponse, expectedError string, t *testing.T) {
+	if response.Error != expectedError {
+		t.Errorf("handler returned unexpected body: got %v want %v",
+			response.Error, expectedError)
 	}
 }
 

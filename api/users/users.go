@@ -10,17 +10,20 @@ import (
 	"time"
 )
 
-var tokenKey = []byte("KEYGOESHERE")
-
 type DB struct {
 	store UserStore
+	key   []byte
 }
 
-func NewDB(store UserStore) *DB {
+func NewDB(store UserStore, key []byte) *DB {
 	if store == nil {
-		return &DB{NewMemoryStore()}
+		store = NewMemoryStore()
 	}
-	return &DB{store: store}
+
+	return &DB{
+		store: store,
+		key:   key,
+	}
 }
 
 type User struct {
@@ -67,7 +70,7 @@ func (DB *DB) Register(email, username, password string) (string, error) {
 		return "", err
 	}
 	DB.registerInDatabase(email, username, string(hashedPwd))
-	token, tokenErr := generateToken(username)
+	token, tokenErr := generateToken(username, DB.key)
 	if tokenErr != nil {
 		return "", tokenErr
 	}
@@ -94,7 +97,7 @@ func (DB *DB) Login(username, password string) (string, error) {
 	if pwdErr != nil {
 		return "", pwdErr
 	}
-	tokenString, err := generateToken(username)
+	tokenString, err := generateToken(username, DB.key)
 	if err != nil {
 		return "", err
 	}
@@ -105,7 +108,7 @@ func (DB *DB) Login(username, password string) (string, error) {
 func (DB *DB) Verify(userToken string) (bool, error) {
 	claims := &Claim{}
 	parsedTkn, err := jwt.ParseWithClaims(userToken, claims, func(t *jwt.Token) (i interface{}, e error) {
-		return tokenKey, nil
+		return DB.key, nil
 	})
 	if err != nil {
 		return false, err
@@ -117,7 +120,7 @@ func (DB *DB) Verify(userToken string) (bool, error) {
 	return true, nil
 }
 
-func generateToken(username string) (string, error) {
+func generateToken(username string, key []byte) (string, error) {
 	expirationTime := time.Now().Add(24 * time.Hour)
 	// Create the JWT claims, which includes the username and expiry time
 	claim := Claim{
@@ -129,6 +132,6 @@ func generateToken(username string) (string, error) {
 	// Declare the token with the algorithm used for signing, and the claims
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claim)
 	// Create the JWT string
-	tokenString, err := token.SignedString(tokenKey)
+	tokenString, err := token.SignedString(key)
 	return tokenString, err
 }

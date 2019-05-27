@@ -3,13 +3,15 @@ async function registerForm() {
     console.log(formData)
     const response = await postData('/api/register', formData);
     //extract JSON from the http response
-     console.log(response)
-    if (response["status"] === "SUCCESS"){
+    console.log(response)
+    if (response["status"] === "SUCCESS") {
         localStorage.setItem('token', response["token"]);
+        localStorage.setItem('username', response["username"]);
         window.location.replace("/");
-        return true
+        return response["status"]
     }
-    return false
+    $("#error").text("Error: " + response["error"]);
+    return response
 
 }
 
@@ -19,22 +21,24 @@ async function loginForm() {
     const response = await postData('/api/login', formData);
     //extract JSON from the http response
     console.log(response)
-    if (response["status"] === "SUCCESS"){
+    if (response["status"] === "SUCCESS") {
         localStorage.setItem('token', response["token"]);
+        localStorage.setItem('username', response["username"]);
         window.location.replace("/");
-        return true
+        return response["status"]
     }
-    return false
+    $("#error").text("Error: " + response["error"]);
+    return response
 
 }
 
 async function verifyUser() {
-  let token = localStorage.getItem('token');
+    let token = localStorage.getItem('token');
 
-    const response = await postData('/api/verify', "token="+token);
+    const response = await postData('/api/verify', "token=" + token);
     //extract JSON from the http response
     console.log(response);
-    if (response["status"] === "SUCCESS"){
+    if (response["status"] === "SUCCESS") {
         localStorage.setItem('token', response["token"]);
         return true
     }
@@ -75,7 +79,8 @@ function updateWeather(latitude, longitude) {
 
 window.onload = async function () {
     let verified = await verifyUser();
-    if (verified){
-        document.getElementById("greeting").innerHTML = "Welcome back!"
+    if (verified) {
+        let username = localStorage.getItem("username");
+        document.getElementById("greeting").innerHTML = "Welcome back " + username + "!"
     }
 };

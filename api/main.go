@@ -12,16 +12,17 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-var us users.UserStore = nil
-var userDB = users.NewDB(us)
+var userDB *users.DB
 
 type statusResponse struct {
 	Status string `json:"status"`
 }
 
 type userResponse struct {
-	Status string `json:"status"`
-	Token  string `json:"token"`
+	Status   string `json:"status"`
+	Username string `json:"username"`
+	Error    string `json:"error"`
+	Token    string `json:"token"`
 }
 
 func configuration() {
@@ -68,14 +69,15 @@ func registerHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params
 
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(userResponse{Status: "FAILURE: " + err.Error()})
+		_ = json.NewEncoder(w).Encode(userResponse{Status: "FAILURE", Error: err.Error()})
 		return
 	}
 	w.WriteHeader(http.StatusCreated)
 
 	_ = json.NewEncoder(w).Encode(userResponse{
-		Status: "SUCCESS",
-		Token:  token,
+		Status:   "SUCCESS",
+		Username: username,
+		Token:    token,
 	})
 }
 
@@ -90,14 +92,15 @@ func loginHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
-		_ = json.NewEncoder(w).Encode(userResponse{Status: "FAILURE: " + err.Error()})
+		_ = json.NewEncoder(w).Encode(userResponse{Status: "FAILURE", Error: err.Error()})
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(userResponse{
-		Status: "SUCCESS",
-		Token:  token,
+		Status:   "SUCCESS",
+		Username: username,
+		Token:    token,
 	})
 
 }
@@ -139,13 +142,15 @@ func main() {
 	configuration()
 	port := viper.GetString("server.port")
 	redisAddr := viper.GetString("redis.addr")
+	tokenKey := []byte(viper.GetString("jwt.key"))
 
 	rc, redisErr := redisclient.ConnectToRedis(redisAddr)
 	if redisErr == nil {
 		log.Printf("Connected to redis on " + redisAddr)
-		us = rc
+		userDB = users.NewDB(rc, tokenKey)
 	} else {
 		log.Printf("Cannot connect to redis " + redisErr.Error())
+		userDB = users.NewDB(users.NewMemoryStore(), tokenKey)
 	}
 
 	log.Printf("Starting on " + port)
