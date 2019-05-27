@@ -31,11 +31,11 @@ spec:
         env:
         - name: environment
           value: "dev"
-        - name: DARKSKYAPIKEY
+        - name: secret
           valueFrom:
             secretKeyRef:
               name: secrets
-              key: darkskyapikey
+              key: psswd
         ports:
         - containerPort: 8080
         livenessProbe:

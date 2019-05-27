@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/alice-ws/alice/redisclient"
 	"github.com/alice-ws/alice/users"
+	"github.com/spf13/viper"
 	"log"
 	"net/http"
 
@@ -21,6 +22,21 @@ type statusResponse struct {
 type userResponse struct {
 	Status string `json:"status"`
 	Token  string `json:"token"`
+}
+
+func configuration() {
+	viper.SetDefault("server.port", ":8080")
+	viper.SetDefault("redis.addr", "localhost:6379")
+	viper.SetDefault("jwt.key", "KEYGOESHERE")
+	viper.SetDefault("users", map[string]string{"alice": "admin"})
+	viper.SetConfigName("config")         // name of config file (without extension)
+	viper.AddConfigPath(".")              // optionally look for config in the working directory
+	viper.AddConfigPath("/alice/")        // path to look for the config file in
+	viper.AddConfigPath("$HOME/.appname") // call multiple times to add many search paths
+	err := viper.ReadInConfig()           // Find and read the config file
+	if err != nil {                       // Handle errors reading the config file
+		panic(fmt.Errorf("Fatal error config file: %s \n", err))
+	}
 }
 
 func homePageHandler(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
@@ -53,6 +69,7 @@ func registerHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		_ = json.NewEncoder(w).Encode(userResponse{Status: "FAILURE: " + err.Error()})
+		return
 	}
 	w.WriteHeader(http.StatusCreated)
 
@@ -85,24 +102,52 @@ func loginHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 }
 
+func verifyUserHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	_ = r.ParseForm()
+	var (
+		token = r.Form.Get("token")
+	)
+
+	verified, err := userDB.Verify(token)
+
+	if err != nil || !verified {
+		w.WriteHeader(http.StatusUnauthorized)
+		_ = json.NewEncoder(w).Encode(userResponse{Status: "FAILURE"})
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(userResponse{
+		Status: "SUCCESS",
+		Token:  token,
+	})
+
+}
+
 func handler() http.Handler {
 	router := httprouter.New()
 	router.GET("/", homePageHandler)
 	router.GET("/healthcheck", healthcheckHandler)
 	router.POST("/register", registerHandler)
 	router.POST("/login", loginHandler)
+	router.POST("/verify", verifyUserHandler)
 
 	return router
 }
 
 func main() {
-	rc, redisErr := redisclient.ConnectToRedis("localhost:6379")
+	configuration()
+	port := viper.GetString("server.port")
+	redisAddr := viper.GetString("redis.addr")
+
+	rc, redisErr := redisclient.ConnectToRedis(redisAddr)
 	if redisErr == nil {
+		log.Printf("Connected to redis on " + redisAddr)
 		us = rc
 	} else {
 		log.Printf("Cannot connect to redis " + redisErr.Error())
 	}
 
-	log.Printf("Starting on :8080")
-	log.Fatal(http.ListenAndServe(":8080", handler()))
+	log.Printf("Starting on " + port)
+	log.Fatal(http.ListenAndServe(port, handler()))
 }
