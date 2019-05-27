@@ -30,7 +30,7 @@ spec:
         image: alicews/alice-web:latest
         env:
           - name: APIURL
-            value: "api.alice.ws"
+            value: "alice"
         ports:
         - containerPort: 3000
         livenessProbe:

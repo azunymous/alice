@@ -1,7 +1,6 @@
 #!/bin/bash
 SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
 cd ${SCRIPTPATH}
-cd ../
 
 kubectl apply -f deployment.yaml
 kubectl apply -f ingress.yaml
