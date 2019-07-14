@@ -5,6 +5,7 @@ const app = express();
 
 const apiURL = process.env.APIURL || 'localhost:8080';
 
+console.log(`Web URL is localhost:3000`);
 console.log(`API URL is ${apiURL}`);
 
 app.get('/healthcheck', function (req, res) {

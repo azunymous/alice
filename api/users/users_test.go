@@ -2,11 +2,10 @@ package users
 
 import (
 	"errors"
+	"github.com/alice-ws/alice/data"
 	"golang.org/x/crypto/bcrypt"
 	"reflect"
 	"testing"
-
-	"github.com/alice-ws/alice/data"
 )
 
 func TestNewStore(t *testing.T) {
@@ -181,6 +180,46 @@ func (failingDB) Get(string) (string, error) {
 
 func (failingDB) Remove(string) error {
 	return errors.New("cannot connect to DB")
+}
+
+func TestStore_AnonymousRegister(t *testing.T) {
+	type fields struct {
+		db  data.DB
+		key []byte
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		want    func(Store, string, string) bool
+		wantErr bool
+	}{
+		{
+			name: "",
+			fields: fields{
+				db:  data.NewMemoryDB(),
+				key: []byte("aKey"),
+			},
+			want:    workingToken,
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			store := &Store{
+				db:  tt.fields.db,
+				key: tt.fields.key,
+			}
+
+			got, err := store.AnonymousRegister()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Store.AnonymousRegister() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if notW := !tt.want(*store, "", got); notW {
+				t.Errorf("Store.AnonymousRegister() did not return a %v token; was %v", notW, got)
+			}
+		})
+	}
 }
 
 func TestStore_Register(t *testing.T) {

@@ -3,6 +3,7 @@ package users
 import (
 	"errors"
 	"fmt"
+	"github.com/alice-ws/alice/anon"
 	"github.com/alice-ws/alice/data"
 	"github.com/dgrijalva/jwt-go"
 	"golang.org/x/crypto/bcrypt"
@@ -56,6 +57,13 @@ func (u *User) Key() string {
 
 func (u *User) String() string {
 	return fmt.Sprintf("user:%s:%s:%s", u.email, u.Username, u.password)
+}
+
+func (store *Store) AnonymousRegister() (string, error) {
+	email, password := anon.Defaults()
+
+	username := anon.GenerateUsername(time.Now().UnixNano())
+	return store.Register(email, username, password)
 }
 
 func (store *Store) Register(email, username, password string) (string, error) {
