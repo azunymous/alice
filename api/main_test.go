@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"github.com/alice-ws/alice/data"
 	"github.com/alice-ws/alice/users"
 	"golang.org/x/crypto/bcrypt"
 	"io"
@@ -43,7 +44,7 @@ func Test_homepageHandler(t *testing.T) {
 	checkBody(rr.Body.String(), expected, t)
 }
 func Test_RegisterSuccess(t *testing.T) {
-	userDB = users.NewDB(nil, tokenKey)
+	userStore = users.NewStore(nil, tokenKey)
 	endpoint := "/register"
 	method := "POST"
 
@@ -62,7 +63,7 @@ func Test_RegisterSuccess(t *testing.T) {
 	checkResponse(response, "SUCCESS", t)
 	verifyToken(response, t)
 
-	_, err := userDB.Login("alice", "Password123")
+	_, err := userStore.Login("alice", "Password123")
 
 	if err != nil {
 		t.Errorf("Failed to login with registered user: %v", err)
@@ -70,7 +71,7 @@ func Test_RegisterSuccess(t *testing.T) {
 }
 
 func Test_RegisterFailureMissingField(t *testing.T) {
-	userDB = users.NewDB(nil, tokenKey)
+	userStore = users.NewStore(nil, tokenKey)
 	endpoint := "/register"
 	method := "POST"
 
@@ -83,7 +84,7 @@ func Test_RegisterFailureMissingField(t *testing.T) {
 	// Check the status code is what we expect.
 	checkStatusCode(rr.Code, http.StatusBadRequest, t)
 
-	_, err := userDB.Login("alice", "Password123")
+	_, err := userStore.Login("alice", "Password123")
 
 	if err == nil {
 		t.Errorf("Succeded to login with registered user, should've failed")
@@ -91,7 +92,7 @@ func Test_RegisterFailureMissingField(t *testing.T) {
 }
 
 func Test_RegisterFailureFieldsEmpty(t *testing.T) {
-	userDB = users.NewDB(nil, tokenKey)
+	userStore = users.NewStore(nil, tokenKey)
 	endpoint := "/register"
 	method := "POST"
 
@@ -105,7 +106,7 @@ func Test_RegisterFailureFieldsEmpty(t *testing.T) {
 	// Check the status code is what we expect.
 	checkStatusCode(rr.Code, http.StatusBadRequest, t)
 
-	_, err := userDB.Login("alice", "Password123")
+	_, err := userStore.Login("alice", "Password123")
 
 	if err == nil {
 		t.Errorf("Succeded to login with registered user, should've failed")
@@ -113,11 +114,11 @@ func Test_RegisterFailureFieldsEmpty(t *testing.T) {
 }
 
 func Test_LoginSuccess(t *testing.T) {
-	store := users.NewMemoryStore()
+	store := data.NewMemoryDB()
 	password, _ := bcrypt.GenerateFromPassword([]byte("Password123"), 10)
-	user, _ := users.NewUser("user:alice@example.com:alice:" + string(password))
-	_ = store.Add(*user)
-	userDB = users.NewDB(store, tokenKey)
+	user, _ := users.New("user:alice@example.com:alice:" + string(password))
+	_ = store.Add(user)
+	userStore = users.NewStore(store, tokenKey)
 
 	endpoint := "/login"
 	method := "POST"
@@ -139,11 +140,11 @@ func Test_LoginSuccess(t *testing.T) {
 }
 
 func Test_LoginFailure(t *testing.T) {
-	store := users.NewMemoryStore()
+	store := data.NewMemoryDB()
 	password, _ := bcrypt.GenerateFromPassword([]byte("Password123"), 10)
-	user, _ := users.NewUser("user:alice@example.com:alice:" + string(password))
-	_ = store.Add(*user)
-	userDB = users.NewDB(store, tokenKey)
+	user, _ := users.New("user:alice@example.com:alice:" + string(password))
+	_ = store.Add(user)
+	userStore = users.NewStore(store, tokenKey)
 
 	endpoint := "/login"
 	method := "POST"
@@ -165,12 +166,12 @@ func Test_LoginFailure(t *testing.T) {
 }
 
 func Test_FullPathToVerifyHandlerSuccess(t *testing.T) {
-	userDB = users.NewDB(nil, tokenKey)
+	userStore = users.NewStore(nil, tokenKey)
 	endpoint := "/verify"
 	method := "POST"
 
-	registerToken, _ := userDB.Register("alice@alice.ws", "alice", "Password123")
-	loginToken, _ := userDB.Login("alice", "Password123")
+	registerToken, _ := userStore.Register("alice@alice.ws", "alice", "Password123")
+	loginToken, _ := userStore.Login("alice", "Password123")
 
 	registerData := url.Values{}
 	registerData.Set("token", registerToken)
@@ -200,11 +201,11 @@ func Test_FullPathToVerifyHandlerSuccess(t *testing.T) {
 }
 
 func Test_InvalidVerifyHandlerFailure(t *testing.T) {
-	userDB = users.NewDB(nil, tokenKey)
+	userStore = users.NewStore(nil, tokenKey)
 	endpoint := "/verify"
 	method := "POST"
 
-	registerToken, _ := userDB.Register("alice@alice.ws", "alice", "Password123")
+	registerToken, _ := userStore.Register("alice@alice.ws", "alice", "Password123")
 	split := strings.Split(registerToken, ".")
 	registerToken = split[0] + "." + split[2] + "." + split[1]
 	registerData := url.Values{}
@@ -272,7 +273,7 @@ func checkError(response *userResponse, expectedError string, t *testing.T) {
 }
 
 func verifyToken(response *userResponse, t *testing.T) {
-	b, e := userDB.Verify(response.Token)
+	b, e := userStore.Verify(response.Token)
 	if !b {
 		t.Errorf("token was invalid: got %v - error %v",
 			response.Token, e)

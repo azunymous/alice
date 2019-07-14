@@ -3,6 +3,7 @@ package users
 import (
 	"errors"
 	"fmt"
+	"github.com/alice-ws/alice/data"
 	"github.com/dgrijalva/jwt-go"
 	"golang.org/x/crypto/bcrypt"
 	"log"
@@ -10,19 +11,19 @@ import (
 	"time"
 )
 
-type DB struct {
-	store UserStore
-	key   []byte
+type Store struct {
+	db  data.DB
+	key []byte
 }
 
-func NewDB(store UserStore, key []byte) *DB {
-	if store == nil {
-		store = NewMemoryStore()
+func NewStore(db data.DB, key []byte) *Store {
+	if db == nil {
+		db = data.NewMemoryDB()
 	}
 
-	return &DB{
-		store: store,
-		key:   key,
+	return &Store{
+		db:  db,
+		key: key,
 	}
 }
 
@@ -37,7 +38,7 @@ type Claim struct {
 	jwt.StandardClaims
 }
 
-func NewUser(colonSeparatedUser string) (*User, error) {
+func New(colonSeparatedUser string) (*User, error) {
 	split := strings.Split(colonSeparatedUser, ":")
 	if len(split) != 4 {
 		return nil, errors.New("user not registered correctly")
@@ -49,47 +50,71 @@ func NewUser(colonSeparatedUser string) (*User, error) {
 	}, nil
 }
 
+func (u *User) Key() string {
+	return u.Username
+}
+
 func (u *User) String() string {
 	return fmt.Sprintf("user:%s:%s:%s", u.email, u.Username, u.password)
 }
 
-type UserStore interface {
-	Ping() bool
-	Add(User) error
-	Get(username string) (User, error)
-	Remove(User) error
-}
-
-func (DB *DB) Register(email, username, password string) (string, error) {
-	if len(email) < 1 || len(username) < 1 || len(password) < 1 {
-		return "", errors.New("fields too short")
+func (store *Store) Register(email, username, password string) (string, error) {
+	if valid, err := fieldsAreValid(email, username, password); !valid {
+		return "", err
 	}
 
 	hashedPwd, err := bcrypt.GenerateFromPassword([]byte(password), 10)
 	if err != nil {
 		return "", err
 	}
-	DB.registerInDatabase(email, username, string(hashedPwd))
-	token, tokenErr := generateToken(username, DB.key)
+	err = store.registerInDatabase(email, username, string(hashedPwd))
+	if err != nil {
+		return "", err
+	}
+	token, tokenErr := generateToken(username, store.key)
 	if tokenErr != nil {
 		return "", tokenErr
 	}
 	return token, nil
 }
 
-func (DB *DB) registerInDatabase(email, username, pwd string) {
-	err := DB.store.Add(User{
+func fieldsAreValid(email, username, password string) (bool, error) {
+	if len(email) < 5 || len(username) < 3 || len(password) < 1 {
+		return false, errors.New("fields too short")
+	}
+	if strings.ContainsRune(email, ':') || strings.ContainsRune(username, ':') {
+		return false, errors.New("email or username contain invalid character: ':'")
+	}
+	return true, nil
+}
+
+func (store *Store) registerInDatabase(email, username, pwd string) error {
+	err := store.db.Add(&User{
 		email:    email,
 		Username: username,
 		password: pwd,
 	})
 	if err != nil {
 		log.Printf("Error adding user %s (%s): %v", username, email, err)
+		return err
 	}
+	return nil
 }
 
-func (DB *DB) Login(username, password string) (string, error) {
-	user, getErr := DB.store.Get(username)
+func (store *Store) getFromDatabase(username string) (User, error) {
+	result, err := store.db.Get(username)
+	if err != nil {
+		return User{}, errors.New("error getting user")
+	}
+	user, newUserErr := New(result)
+	if newUserErr != nil {
+		return User{}, errors.New("error reading stored user " + newUserErr.Error())
+	}
+	return *user, nil
+}
+
+func (store *Store) Login(username, password string) (string, error) {
+	user, getErr := store.getFromDatabase(username)
 	if getErr != nil {
 		return "", errors.New("error logging in: " + getErr.Error())
 	}
@@ -97,7 +122,7 @@ func (DB *DB) Login(username, password string) (string, error) {
 	if pwdErr != nil {
 		return "", pwdErr
 	}
-	tokenString, err := generateToken(username, DB.key)
+	tokenString, err := generateToken(username, store.key)
 	if err != nil {
 		return "", err
 	}
@@ -105,10 +130,10 @@ func (DB *DB) Login(username, password string) (string, error) {
 	return tokenString, nil
 }
 
-func (DB *DB) Verify(userToken string) (bool, error) {
+func (store *Store) Verify(userToken string) (bool, error) {
 	claims := &Claim{}
 	parsedTkn, err := jwt.ParseWithClaims(userToken, claims, func(t *jwt.Token) (i interface{}, e error) {
-		return DB.key, nil
+		return store.key, nil
 	})
 	if err != nil {
 		return false, err

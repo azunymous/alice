@@ -2,7 +2,7 @@ package redisclient
 
 import (
 	"errors"
-	"github.com/alice-ws/alice/users"
+	"github.com/alice-ws/alice/data"
 	"github.com/go-redis/redis"
 )
 
@@ -31,24 +31,20 @@ func (s *Store) Ping() bool {
 	return true
 }
 
-func (s *Store) Add(u users.User) error {
-	_, err := s.client.Set(u.Username, u.String(), 0).Result()
+func (s *Store) Add(kv data.KeyValue) error {
+	_, err := s.client.Set(kv.Key(), kv.String(), 0).Result()
 	return err
 }
 
-func (s *Store) Get(username string) (users.User, error) {
-	result, getErr := s.client.Get(username).Result()
+func (s *Store) Get(key string) (string, error) {
+	result, getErr := s.client.Get(key).Result()
 	if getErr != nil {
-		return users.User{}, errors.New("error getting user " + getErr.Error())
+		return "", errors.New("error getting user " + getErr.Error())
 	}
-	user, newUserErr := users.NewUser(result)
-	if newUserErr != nil {
-		return users.User{}, errors.New("error reading stored user " + newUserErr.Error())
-	}
-	return *user, nil
+	return result, nil
 }
 
-func (s *Store) Remove(u users.User) error {
-	err := s.client.Del(u.Username).Err()
+func (s *Store) Remove(key string) error {
+	err := s.client.Del(key).Err()
 	return err
 }

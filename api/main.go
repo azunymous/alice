@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/alice-ws/alice/data"
 	"github.com/alice-ws/alice/redisclient"
 	"github.com/alice-ws/alice/users"
 	"github.com/spf13/viper"
@@ -12,7 +13,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-var userDB *users.DB
+var userStore *users.Store
 
 type statusResponse struct {
 	Status string `json:"status"`
@@ -63,7 +64,7 @@ func registerHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params
 		password = r.Form.Get("password")
 	)
 
-	token, err := userDB.Register(email, username, password)
+	token, err := userStore.Register(email, username, password)
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -88,7 +89,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		password = r.Form.Get("password")
 	)
 
-	token, err := userDB.Login(username, password)
+	token, err := userStore.Login(username, password)
 
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -111,7 +112,7 @@ func verifyUserHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Para
 		token = r.Form.Get("token")
 	)
 
-	verified, err := userDB.Verify(token)
+	verified, err := userStore.Verify(token)
 
 	if err != nil || !verified {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -139,20 +140,23 @@ func handler() http.Handler {
 }
 
 func main() {
+	port := setup()
+	log.Fatal(http.ListenAndServe(port, handler()))
+}
+
+func setup() string {
 	configuration()
 	port := viper.GetString("server.port")
 	redisAddr := viper.GetString("redis.addr")
 	tokenKey := []byte(viper.GetString("jwt.key"))
-
 	rc, redisErr := redisclient.ConnectToRedis(redisAddr)
 	if redisErr == nil {
 		log.Printf("Connected to redis on " + redisAddr)
-		userDB = users.NewDB(rc, tokenKey)
+		userStore = users.NewStore(rc, tokenKey)
 	} else {
 		log.Printf("Cannot connect to redis " + redisErr.Error())
-		userDB = users.NewDB(users.NewMemoryStore(), tokenKey)
+		userStore = users.NewStore(data.NewMemoryDB(), tokenKey)
 	}
-
 	log.Printf("Starting on " + port)
-	log.Fatal(http.ListenAndServe(port, handler()))
+	return port
 }
