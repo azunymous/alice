@@ -210,12 +210,12 @@ func TestStore_AnonymousRegister(t *testing.T) {
 				key: tt.fields.key,
 			}
 
-			got, err := store.AnonymousRegister()
+			username, got, err := store.AnonymousRegister()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Store.AnonymousRegister() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if notW := !tt.want(*store, "", got); notW {
+			if notW := !tt.want(*store, username, got); notW {
 				t.Errorf("Store.AnonymousRegister() did not return a %v token; was %v", notW, got)
 			}
 		})

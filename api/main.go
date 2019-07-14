@@ -56,6 +56,22 @@ func healthcheckHandler(w http.ResponseWriter, _ *http.Request, _ httprouter.Par
 	_ = json.NewEncoder(w).Encode(status)
 }
 
+func anonRegisterHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	username, token, err := userStore.AnonymousRegister()
+
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(userResponse{Status: "FAILURE", Error: err.Error()})
+		return
+	}
+	w.WriteHeader(http.StatusCreated)
+	_ = json.NewEncoder(w).Encode(userResponse{
+		Status:   "SUCCESS",
+		Username: username,
+		Token:    token,
+	})
+}
+
 func registerHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	_ = r.ParseForm()
 	var (
@@ -133,6 +149,7 @@ func handler() http.Handler {
 	router.GET("/", homePageHandler)
 	router.GET("/healthcheck", healthcheckHandler)
 	router.POST("/register", registerHandler)
+	router.POST("/anonregister", anonRegisterHandler)
 	router.POST("/login", loginHandler)
 	router.POST("/verify", verifyUserHandler)
 

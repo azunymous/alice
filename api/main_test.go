@@ -43,6 +43,31 @@ func Test_homepageHandler(t *testing.T) {
 	expected := `{"V" : "1", "data" : "ALICE API"}`
 	checkBody(rr.Body.String(), expected, t)
 }
+
+func Test_AnonRegisterSuccess(t *testing.T) {
+	userStore = users.NewStore(nil, tokenKey)
+	endpoint := "/anonregister"
+	method := "POST"
+
+	d := url.Values{}
+
+	rr := createRequestAndServe(method, endpoint, strings.NewReader(d.Encode()))
+
+	// Check the status code is what we expect.
+	checkStatusCode(rr.Code, http.StatusCreated, t)
+
+	response := &userResponse{}
+	_ = json.Unmarshal(rr.Body.Bytes(), response)
+	checkResponse(response, "SUCCESS", t)
+	verifyToken(response, t)
+
+	_, err := userStore.Login(response.Username, "password")
+
+	if err != nil {
+		t.Errorf("Failed to login with registered user: %v", err)
+	}
+}
+
 func Test_RegisterSuccess(t *testing.T) {
 	userStore = users.NewStore(nil, tokenKey)
 	endpoint := "/register"

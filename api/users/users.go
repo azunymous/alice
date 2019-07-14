@@ -59,11 +59,12 @@ func (u *User) String() string {
 	return fmt.Sprintf("user:%s:%s:%s", u.email, u.Username, u.password)
 }
 
-func (store *Store) AnonymousRegister() (string, error) {
+func (store *Store) AnonymousRegister() (string, string, error) {
 	email, password := anon.Defaults()
 
 	username := anon.GenerateUsername(time.Now().UnixNano())
-	return store.Register(email, username, password)
+	token, err := store.Register(email, username, password)
+	return username, token, err
 }
 
 func (store *Store) Register(email, username, password string) (string, error) {
