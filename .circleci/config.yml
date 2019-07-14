@@ -16,7 +16,7 @@ jobs:
       - checkout
 
       # specify any bash command here prefixed with `run: `
-      - run: ls -la
       - run: cd api
+      - run: ls -la
       - run: go build -v 
       - run: go test -v ./...
