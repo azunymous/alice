@@ -139,19 +139,19 @@ func (store *Store) Login(username, password string) (string, error) {
 	return tokenString, nil
 }
 
-func (store *Store) Verify(userToken string) (bool, error) {
+func (store *Store) Verify(userToken string) (string, bool, error) {
 	claims := &Claim{}
 	parsedTkn, err := jwt.ParseWithClaims(userToken, claims, func(t *jwt.Token) (i interface{}, e error) {
 		return store.key, nil
 	})
 	if err != nil {
-		return false, err
+		return "", false, err
 	}
 	if !parsedTkn.Valid {
-		return false, errors.New("token not valid")
+		return "", false, errors.New("token not valid")
 	}
 	println(claims.Username, " verified token")
-	return true, nil
+	return claims.Username, true, nil
 }
 
 func generateToken(username string, key []byte) (string, error) {

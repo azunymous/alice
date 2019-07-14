@@ -343,7 +343,7 @@ func TestStore_Register(t *testing.T) {
 }
 
 func workingToken(store Store, _, token string) bool {
-	valid, err := store.Verify(token)
+	_, valid, err := store.Verify(token)
 	if err != nil {
 		println(err.Error())
 	}
@@ -605,11 +605,15 @@ func TestStore_Verify(t *testing.T) {
 	type args struct {
 		userToken string
 	}
+	type want struct {
+		username string
+		valid    bool
+	}
 	tests := []struct {
 		name    string
 		fields  fields
 		args    args
-		want    bool
+		want    want
 		wantErr bool
 	}{
 		{
@@ -621,7 +625,7 @@ func TestStore_Verify(t *testing.T) {
 			args: args{
 				userToken: generateTokenIgnoringError("alice", "aKey"),
 			},
-			want:    true,
+			want:    want{"alice", true},
 			wantErr: false,
 		},
 		{
@@ -633,7 +637,7 @@ func TestStore_Verify(t *testing.T) {
 			args: args{
 				userToken: generateTokenIgnoringError("alice", "wrongKey"),
 			},
-			want:    false,
+			want:    want{"", false},
 			wantErr: true,
 		},
 		{
@@ -645,7 +649,7 @@ func TestStore_Verify(t *testing.T) {
 			args: args{
 				userToken: "only.twoparts",
 			},
-			want:    false,
+			want:    want{valid: false},
 			wantErr: true,
 		},
 	}
@@ -655,12 +659,12 @@ func TestStore_Verify(t *testing.T) {
 				db:  tt.fields.db,
 				key: tt.fields.key,
 			}
-			got, err := store.Verify(tt.args.userToken)
+			gotUsername, got, err := store.Verify(tt.args.userToken)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Store.Verify() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if got != tt.want {
+			if got != tt.want.valid || gotUsername != tt.want.username {
 				t.Errorf("Store.Verify() = %v, want %v", got, tt.want)
 			}
 		})
@@ -721,7 +725,7 @@ func Test_generateToken(t *testing.T) {
 	}
 }
 func invalidToken(store Store, _, token string) bool {
-	valid, err := store.Verify(token)
+	_, valid, err := store.Verify(token)
 	if err != nil {
 		println(err.Error())
 	}

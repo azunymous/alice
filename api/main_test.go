@@ -298,7 +298,7 @@ func checkError(response *userResponse, expectedError string, t *testing.T) {
 }
 
 func verifyToken(response *userResponse, t *testing.T) {
-	b, e := userStore.Verify(response.Token)
+	_, b, e := userStore.Verify(response.Token)
 	if !b {
 		t.Errorf("token was invalid: got %v - error %v",
 			response.Token, e)

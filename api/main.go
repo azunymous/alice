@@ -128,7 +128,7 @@ func verifyUserHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Para
 		token = r.Form.Get("token")
 	)
 
-	verified, err := userStore.Verify(token)
+	username, verified, err := userStore.Verify(token)
 
 	if err != nil || !verified {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -138,8 +138,9 @@ func verifyUserHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Para
 
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(userResponse{
-		Status: "SUCCESS",
-		Token:  token,
+		Status:   "SUCCESS",
+		Username: username,
+		Token:    token,
 	})
 
 }
