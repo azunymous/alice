@@ -22,7 +22,7 @@ type DDL struct {
 }
 
 func (d *DDL) Key() string {
-	return d.ID
+	return "DDL:" + d.ID
 }
 
 func (d *DDL) String() (string, error) {

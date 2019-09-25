@@ -1,0 +1,4 @@
+runtime: nodejs10
+
+env_variables:
+  APIURL: 'api-dot-aliceweb.appspot.com'

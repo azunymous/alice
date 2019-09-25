@@ -1,6 +1,8 @@
 package anon
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestGenerateUsername(t *testing.T) {
 	type args struct {
@@ -30,6 +32,31 @@ func TestGenerateUsername(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := GenerateUsername(tt.args.seed); got != tt.want {
 				t.Errorf("GenerateUsername() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestDefaults(t *testing.T) {
+	tests := []struct {
+		name  string
+		want  string
+		want1 string
+	}{
+		{
+			name:  "Returns name",
+			want:  "anon@example.com",
+			want1: "password",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, got1 := Defaults()
+			if got != tt.want {
+				t.Errorf("Defaults() got = %v, want %v", got, tt.want)
+			}
+			if got1 != tt.want1 {
+				t.Errorf("Defaults() got1 = %v, want %v", got1, tt.want1)
 			}
 		})
 	}

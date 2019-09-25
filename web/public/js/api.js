@@ -15,6 +15,22 @@ async function registerForm() {
 
 }
 
+async function anonRegister() {
+    console.log("Anon login")
+    const response = await postData('/api/anonregister', "{}");
+    //extract JSON from the http response
+    console.log(response)
+    if (response["status"] === "SUCCESS") {
+        localStorage.setItem('token', response["token"]);
+        localStorage.setItem('username', response["username"]);
+        window.location.replace("/");
+        return response["status"]
+    }
+    $("#error").text("Error: " + response["error"]);
+    return response
+
+}
+
 async function loginForm() {
     let formData = $("#loginForm").serialize();
     console.log(formData)
@@ -81,6 +97,7 @@ window.onload = async function () {
     let verified = await verifyUser();
     if (verified) {
         let username = localStorage.getItem("username");
-        document.getElementById("greeting").innerHTML = "Welcome back " + username + "!"
+        document.getElementById("greeting").innerHTML = "Welcome " + username + "!"
+        document.getElementById("loginFieldSet").setAttribute("hidden", "")
     }
 };

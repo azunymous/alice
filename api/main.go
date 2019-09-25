@@ -31,12 +31,12 @@ func configuration() {
 	viper.SetDefault("redis.addr", "localhost:6379")
 	viper.SetDefault("jwt.key", "KEYGOESHERE")
 	viper.SetDefault("users", map[string]string{"alice": "admin"})
-	viper.SetConfigName("config")         // name of config file (without extension)
-	viper.AddConfigPath(".")              // optionally look for config in the working directory
-	viper.AddConfigPath("/alice/")        // path to look for the config file in
-	viper.AddConfigPath("$HOME/.appname") // call multiple times to add many search paths
-	err := viper.ReadInConfig()           // Find and read the config file
-	if err != nil {                       // Handle errors reading the config file
+	viper.SetConfigName("config")       // name of config file (without extension)
+	viper.AddConfigPath(".")            // optionally look for config in the working directory
+	viper.AddConfigPath("/alice/")      // path to look for the config file in
+	viper.AddConfigPath("$HOME/.alice") // call multiple times to add many search paths
+	err := viper.ReadInConfig()         // Find and read the config file
+	if err != nil {                     // Handle errors reading the config file
 		panic(fmt.Errorf("Fatal error config file: %s \n", err))
 	}
 }
