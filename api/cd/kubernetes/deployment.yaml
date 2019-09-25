@@ -5,8 +5,8 @@ metadata:
   namespace: dev
 spec:
   ports:
-  - port: 80
-    targetPort: 8080
+    - port: 80
+      targetPort: 8080
   selector:
     app: alice
 ---
@@ -26,14 +26,14 @@ spec:
         app: alice
     spec:
       containers:
-      - name: alice
-        image: alicews/alice:latest
-        env:
-        - name: environment
-          value: "dev"
-        ports:
-        - containerPort: 8080
-        livenessProbe:
-              httpGet:
-                path: /healthcheck
-                port: 8080
+        - name: alice
+          image: alicews/alice:latest
+          env:
+            - name: environment
+              value: "dev"
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+            httpGet:
+              path: /healthcheck
+              port: 8080

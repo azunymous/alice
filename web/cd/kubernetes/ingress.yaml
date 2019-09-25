@@ -5,10 +5,10 @@ metadata:
   namespace: dev
 spec:
   rules:
-  - host: www.alice.ws
-    http:
-      paths:
-      - path: /
-        backend:
-          serviceName: alice-web
-          servicePort: 80
+    - host: www.alice.ws
+      http:
+        paths:
+          - path: /
+            backend:
+              serviceName: alice-web
+              servicePort: 80

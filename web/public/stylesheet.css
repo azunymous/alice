@@ -138,7 +138,6 @@ body {
 }
 
 
-
 .centre {
     display: flex;
     align-items: center;
@@ -162,6 +161,7 @@ body {
     background-image: linear-gradient(to right, #46b9f2 0%, #ff6e7f 50%, #bfe9ff 100%);
     transition: 0.5s;
 }
+
 .btn-grad:hover {
     background-position: right center;
 }

@@ -5,8 +5,8 @@ metadata:
   namespace: dev
 spec:
   ports:
-  - port: 80
-    targetPort: 3000
+    - port: 80
+      targetPort: 3000
   selector:
     app: alice-web
 ---
@@ -26,14 +26,14 @@ spec:
         app: alice-web
     spec:
       containers:
-      - name: alice-web
-        image: alicews/alice-web:latest
-        env:
-          - name: APIURL
-            value: "alice"
-        ports:
-        - containerPort: 3000
-        livenessProbe:
-              httpGet:
-                path: /healthcheck
-                port: 3000
+        - name: alice-web
+          image: alicews/alice-web:latest
+          env:
+            - name: APIURL
+              value: "alice"
+          ports:
+            - containerPort: 3000
+          livenessProbe:
+            httpGet:
+              path: /healthcheck
+              port: 3000
