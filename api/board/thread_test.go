@@ -1,4 +1,4 @@
-package post
+package board
 
 import (
 	"github.com/alice-ws/alice/data"
@@ -10,7 +10,7 @@ import (
 func TestStore_AddThread(t *testing.T) {
 	type fields struct {
 		db    data.DB
-		count uint64
+		index uint64
 	}
 	type args struct {
 		thread Thread
@@ -23,15 +23,27 @@ func TestStore_AddThread(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "first post is created with incremented post no and thread is added",
+			name: "first thread is created with incrementing post no and thread is added with post no 0",
 			fields: fields{
 				db:    data.NewMemoryDB(),
-				count: 0,
+				index: 0,
 			},
 			args: args{
 				thread: thread(),
 			},
-			want:    countIsIncrementedForThread,
+			want:    incrementedForFirstThread,
+			wantErr: false,
+		},
+		{
+			name: "thread is stored in a readable format and can be converted back to a thread afterwards",
+			fields: fields{
+				db:    data.NewMemoryDB(),
+				index: 1,
+			},
+			args: args{
+				thread: thread(),
+			},
+			want:    threadIsReadable,
 			wantErr: false,
 		},
 	}
@@ -39,7 +51,7 @@ func TestStore_AddThread(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			store := &Store{
 				db:    tt.fields.db,
-				count: tt.fields.count,
+				count: tt.fields.index,
 			}
 			got, err := store.AddThread(tt.args.thread)
 			if (err != nil) != tt.wantErr {
@@ -53,9 +65,30 @@ func TestStore_AddThread(t *testing.T) {
 	}
 }
 
-func countIsIncrementedForThread(input Thread, returnValue uint64, store Store) bool {
+func TestThread_String(t *testing.T) {
+	thread := thread()
+
+	gotThreadString := thread.String()
+	expectedThreadString := `{"post":{"no":0,"timestamp":"1970-01-01T01:00:00+01:00","name":"Anonymous","email":"","comment":"Hello World!","image":"/path/0","filename":"file.png","meta":"","quoted_by":[]},"subject":"A subject","replies":[]}`
+	if gotThreadString != expectedThreadString {
+		t.Errorf("Thread string was %s, want %s", gotThreadString, expectedThreadString)
+	}
+}
+
+func incrementedForFirstThread(input Thread, returnValue uint64, store Store) bool {
 	get, err := store.db.Get(input.Key())
 	if err == nil && store.count == 1 && input.String() == get {
+		return true
+	}
+	println("Count was incremented and/or DB does not contain thread")
+	return false
+}
+
+func threadIsReadable(input Thread, returnValue uint64, store Store) bool {
+	input.Post.No = 1
+	get, err := store.db.Get(input.Key())
+	outputAsThread, _ := newThreadFrom(get)
+	if err == nil && store.count == 2 && reflect.DeepEqual(input, outputAsThread) {
 		return true
 	}
 	println("Count was not incremented and/or DB does not contain thread")

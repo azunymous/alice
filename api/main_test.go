@@ -2,16 +2,20 @@ package main
 
 import (
 	"encoding/json"
+	"github.com/alice-ws/alice/board"
 	"github.com/alice-ws/alice/data"
 	"github.com/alice-ws/alice/users"
 	"golang.org/x/crypto/bcrypt"
 	"io"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 )
 
 var tokenKey = []byte("KEYGOESHERE")
@@ -20,7 +24,7 @@ func Test_healthcheckHandler(t *testing.T) {
 	endpoint := "/healthcheck"
 	method := "GET"
 
-	rr := createRequestAndServe(method, endpoint, nil)
+	rr := createRequestAndServe(method, endpoint, nil, requestCreatorForm)
 
 	// Check the status code is what we expect.
 	checkStatusCode(rr.Code, http.StatusOK, t)
@@ -34,7 +38,7 @@ func Test_homepageHandler(t *testing.T) {
 	endpoint := "/"
 	method := "GET"
 
-	rr := createRequestAndServe(method, endpoint, nil)
+	rr := createRequestAndServe(method, endpoint, nil, requestCreatorForm)
 
 	// Check the status code is what we expect.
 	checkStatusCode(rr.Code, http.StatusOK, t)
@@ -51,7 +55,7 @@ func Test_AnonRegisterSuccess(t *testing.T) {
 
 	d := url.Values{}
 
-	rr := createRequestAndServe(method, endpoint, strings.NewReader(d.Encode()))
+	rr := createRequestAndServe(method, endpoint, strings.NewReader(d.Encode()), requestCreatorForm)
 
 	// Check the status code is what we expect.
 	checkStatusCode(rr.Code, http.StatusCreated, t)
@@ -73,12 +77,12 @@ func Test_RegisterSuccess(t *testing.T) {
 	endpoint := "/register"
 	method := "POST"
 
-	data := url.Values{}
-	data.Set("email", "alice@example.com")
-	data.Set("username", "alice")
-	data.Set("password", "Password123")
+	values := url.Values{}
+	values.Set("email", "alice@example.com")
+	values.Set("username", "alice")
+	values.Set("password", "Password123")
 
-	rr := createRequestAndServe(method, endpoint, strings.NewReader(data.Encode()))
+	rr := createRequestAndServe(method, endpoint, strings.NewReader(values.Encode()), requestCreatorForm)
 
 	// Check the status code is what we expect.
 	checkStatusCode(rr.Code, http.StatusCreated, t)
@@ -100,11 +104,11 @@ func Test_RegisterFailureMissingField(t *testing.T) {
 	endpoint := "/register"
 	method := "POST"
 
-	data := url.Values{}
-	data.Set("email", "alice@example.com")
-	data.Set("password", "Password123")
+	values := url.Values{}
+	values.Set("email", "alice@example.com")
+	values.Set("password", "Password123")
 
-	rr := createRequestAndServe(method, endpoint, strings.NewReader(data.Encode()))
+	rr := createRequestAndServe(method, endpoint, strings.NewReader(values.Encode()), requestCreatorForm)
 
 	// Check the status code is what we expect.
 	checkStatusCode(rr.Code, http.StatusBadRequest, t)
@@ -121,12 +125,12 @@ func Test_RegisterFailureFieldsEmpty(t *testing.T) {
 	endpoint := "/register"
 	method := "POST"
 
-	data := url.Values{}
-	data.Set("email", "")
-	data.Set("username", "alice")
-	data.Set("password", "")
+	values := url.Values{}
+	values.Set("email", "")
+	values.Set("username", "alice")
+	values.Set("password", "")
 
-	rr := createRequestAndServe(method, endpoint, strings.NewReader(data.Encode()))
+	rr := createRequestAndServe(method, endpoint, strings.NewReader(values.Encode()), requestCreatorForm)
 
 	// Check the status code is what we expect.
 	checkStatusCode(rr.Code, http.StatusBadRequest, t)
@@ -142,17 +146,17 @@ func Test_LoginSuccess(t *testing.T) {
 	store := data.NewMemoryDB()
 	password, _ := bcrypt.GenerateFromPassword([]byte("Password123"), 10)
 	user, _ := users.New("user:alice@example.com:alice:" + string(password))
-	_ = store.Add(user)
+	_ = store.Set(user)
 	userStore = users.NewStore(store, tokenKey)
 
 	endpoint := "/login"
 	method := "POST"
 
-	data := url.Values{}
-	data.Set("username", "alice")
-	data.Set("password", "Password123")
+	values := url.Values{}
+	values.Set("username", "alice")
+	values.Set("password", "Password123")
 
-	rr := createRequestAndServe(method, endpoint, strings.NewReader(data.Encode()))
+	rr := createRequestAndServe(method, endpoint, strings.NewReader(values.Encode()), requestCreatorForm)
 
 	// Check the status code is what we expect.
 	checkStatusCode(rr.Code, http.StatusOK, t)
@@ -168,17 +172,17 @@ func Test_LoginFailure(t *testing.T) {
 	store := data.NewMemoryDB()
 	password, _ := bcrypt.GenerateFromPassword([]byte("Password123"), 10)
 	user, _ := users.New("user:alice@example.com:alice:" + string(password))
-	_ = store.Add(user)
+	_ = store.Set(user)
 	userStore = users.NewStore(store, tokenKey)
 
 	endpoint := "/login"
 	method := "POST"
 
-	data := url.Values{}
-	data.Set("username", "alice")
-	data.Set("password", "IncorrectPassword")
+	values := url.Values{}
+	values.Set("username", "alice")
+	values.Set("password", "IncorrectPassword")
 
-	rr := createRequestAndServe(method, endpoint, strings.NewReader(data.Encode()))
+	rr := createRequestAndServe(method, endpoint, strings.NewReader(values.Encode()), requestCreatorForm)
 
 	// Check the status code is what we expect.
 	checkStatusCode(rr.Code, http.StatusUnauthorized, t)
@@ -204,8 +208,8 @@ func Test_FullPathToVerifyHandlerSuccess(t *testing.T) {
 	loginData := url.Values{}
 	loginData.Set("token", loginToken)
 
-	registerR := createRequestAndServe(method, endpoint, strings.NewReader(registerData.Encode()))
-	loginR := createRequestAndServe(method, endpoint, strings.NewReader(loginData.Encode()))
+	registerR := createRequestAndServe(method, endpoint, strings.NewReader(registerData.Encode()), requestCreatorForm)
+	loginR := createRequestAndServe(method, endpoint, strings.NewReader(loginData.Encode()), requestCreatorForm)
 
 	// Check the status code is what we expect.
 	checkStatusCode(registerR.Code, http.StatusOK, t)
@@ -236,7 +240,7 @@ func Test_InvalidVerifyHandlerFailure(t *testing.T) {
 	registerData := url.Values{}
 	registerData.Set("token", registerToken)
 
-	registerR := createRequestAndServe(method, endpoint, strings.NewReader(registerData.Encode()))
+	registerR := createRequestAndServe(method, endpoint, strings.NewReader(registerData.Encode()), requestCreatorForm)
 
 	// Check the status code is what we expect.
 	checkStatusCode(registerR.Code, http.StatusUnauthorized, t)
@@ -250,22 +254,148 @@ func Test_InvalidVerifyHandlerFailure(t *testing.T) {
 
 }
 
+func Test_AddThreadSuccess(t *testing.T) {
+	threadStore = board.NewStore(nil)
+	endpoint := "/thread"
+	method := "POST"
+	thread := board.NewThread(examplePost(), "a subject")
+	rr := createRequestAndServe(method, endpoint, strings.NewReader(thread.String()), requestCreatorJson)
+
+	// Check the status code is what we expect.
+	checkStatusCode(rr.Code, http.StatusCreated, t)
+
+	response := &userResponse{}
+	_ = json.Unmarshal(rr.Body.Bytes(), response)
+	checkResponse(response, "SUCCESS", t)
+	threadInDB, err := threadStore.GetThread(strconv.FormatUint(thread.No, 10))
+	if err != nil || !reflect.DeepEqual(threadInDB, thread) {
+		t.Errorf("Thread in DB incorrect: got %v want %s", threadInDB, thread)
+	}
+}
+
+func Test_GetThreadSuccess(t *testing.T) {
+	threadStore = board.NewStore(nil)
+	threadInDB := board.NewThread(examplePost(), "a subject")
+	_, _ = threadStore.AddThread(threadInDB) // Thread number is 0
+	endpoint := "/thread"
+	method := "GET"
+	endpoint = addQueryParam(endpoint, "no", "0")
+	rr := createRequestAndServe(method, endpoint, nil, requestCreatorJson)
+
+	// Check the status code is what we expect.
+	checkStatusCode(rr.Code, http.StatusOK, t)
+
+	response := &boardResponse{}
+	_ = json.Unmarshal(rr.Body.Bytes(), response)
+
+	if !reflect.DeepEqual(response.Thread, threadInDB) || response.Type != "THREAD" {
+		t.Errorf("Thread in response incorrect: got %v want %s", response.Thread, threadInDB)
+		t.Logf("Full response: %v", response)
+	}
+}
+
+//noinspection ALL
+func Test_AddPostSuccess(t *testing.T) {
+	threadStore = board.NewStore(nil)
+	threadInDB := board.NewThread(examplePost(), "a subject")
+	_, _ = threadStore.AddThread(threadInDB) // Thread number is 0
+
+	endpoint := "/post"
+	method := "POST"
+
+	post := examplePost()
+	post.No = 1
+	request := boardRequest{
+		ThreadNo: "0",
+		Post:     post,
+		Type:     "POST",
+	}
+
+	bytes, _ := json.Marshal(request)
+
+	rr := createRequestAndServe(method, endpoint, strings.NewReader(string(bytes)), requestCreatorJson)
+
+	// Check the status code is what we expect.
+	checkStatusCode(rr.Code, http.StatusCreated, t)
+
+	response := &userResponse{}
+	_ = json.Unmarshal(rr.Body.Bytes(), response)
+	checkResponse(response, "SUCCESS", t)
+	threadInDB, err := threadStore.GetThread(request.ThreadNo)
+	if err != nil || len(threadInDB.Replies) != 1 || !reflect.DeepEqual(threadInDB.Replies[0], post) {
+		t.Errorf("Thread in DB incorrect: got %v want %s", threadInDB.Replies[0], post)
+	}
+}
+
+//noinspection ALL
+func Test_AddPostSuccess_generatesPostNo(t *testing.T) {
+	threadStore = board.NewStore(nil)
+	threadInDB := board.NewThread(examplePost(), "a subject")
+	_, _ = threadStore.AddThread(threadInDB) // Thread number is 0
+
+	endpoint := "/post"
+	method := "POST"
+
+	post := examplePost()
+	post.No = 99
+	request := boardRequest{
+		ThreadNo: "0",
+		Post:     post,
+		Type:     "POST",
+	}
+
+	bytes, _ := json.Marshal(request)
+
+	rr := createRequestAndServe(method, endpoint, strings.NewReader(string(bytes)), requestCreatorJson)
+
+	// Check the status code is what we expect.
+	checkStatusCode(rr.Code, http.StatusCreated, t)
+
+	response := &userResponse{}
+	_ = json.Unmarshal(rr.Body.Bytes(), response)
+
+	wantPost := examplePost()
+	wantPost.No = 1
+	checkResponse(response, "SUCCESS", t)
+	threadInDB, err := threadStore.GetThread(string(request.ThreadNo))
+	if err != nil || len(threadInDB.Replies) != 1 || !reflect.DeepEqual(threadInDB.Replies[0], wantPost) {
+		t.Errorf("Thread in DB incorrect: got %v want %s", threadInDB.Replies[0], wantPost)
+	}
+}
+
 // Test Utilities
 var h = handler()
 
-func createRequestAndServe(method string, hitEndpoint string, params io.Reader) *httptest.ResponseRecorder {
-	req := getRequest(method, hitEndpoint, params)
+func createRequestAndServe(method string, hitEndpoint string, params io.Reader, requestCreator func(string, string, io.Reader) *http.Request) *httptest.ResponseRecorder {
+	req := requestCreator(method, hitEndpoint, params)
 	rr := httptest.NewRecorder()
 	h.ServeHTTP(rr, req)
 	return rr
 }
 
-func getRequest(method, url string, body io.Reader) *http.Request {
+func requestCreatorForm(method, url string, body io.Reader) *http.Request {
 	req, _ := http.NewRequest(method, url, body)
 	if body != nil && method == "POST" {
 		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	}
 	return req
+}
+
+func requestCreatorJson(method, url string, body io.Reader) *http.Request {
+	req, _ := http.NewRequest(method, url, body)
+	if body != nil && method == "POST" {
+		req.Header.Add("Content-Type", "application/json")
+	}
+	return req
+}
+
+func addQueryParam(endpoint, key, value string) string {
+	parsedEndpoint, _ := url.Parse(endpoint)
+	q := parsedEndpoint.Query()
+	q.Add(key, value)
+	log.Printf("endpoint with query %s", parsedEndpoint.String())
+	parsedEndpoint.RawQuery = q.Encode()
+	return parsedEndpoint.String()
 }
 
 func checkStatusCode(got, expected int, t *testing.T) {
@@ -316,4 +446,8 @@ func JSONBytesEqual(s1, s2 string) (bool, error) {
 		return false, err
 	}
 	return reflect.DeepEqual(j2, j), nil
+}
+
+func examplePost() board.Post {
+	return board.NewPost(0, time.Unix(0, 0), "Anonymous", "", "Hello World!", "/path/0", "file.png", "")
 }

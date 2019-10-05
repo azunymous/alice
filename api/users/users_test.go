@@ -170,7 +170,7 @@ func (failingDB) Ping() bool {
 	return false
 }
 
-func (failingDB) Add(data.KeyValue) error {
+func (failingDB) Set(data.KeyValue) error {
 	return errors.New("cannot connect to DB")
 }
 
@@ -501,7 +501,7 @@ func TestStore_getFromDatabase(t *testing.T) {
 
 func mapStoreWithUser(username, email, password string) data.DB {
 	db := data.NewMemoryDB()
-	_ = db.Add(&User{Username: username, email: email, password: password})
+	_ = db.Set(&User{Username: username, email: email, password: password})
 	return db
 }
 

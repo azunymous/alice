@@ -16,7 +16,7 @@ func (*MemoryDB) Ping() bool {
 	return true
 }
 
-func (s *MemoryDB) Add(u KeyValue) error {
+func (s *MemoryDB) Set(u KeyValue) error {
 	s.m[u.Key()] = u.String()
 	return nil
 }

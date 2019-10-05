@@ -1,8 +1,7 @@
-package post
+package board
 
 import (
 	"github.com/alice-ws/alice/data"
-	"image"
 	"reflect"
 	"runtime"
 	"testing"
@@ -127,32 +126,32 @@ func TestPost_validate(t *testing.T) {
 		},
 		{
 			name:      "fails validation for exe (non png, jpg, jpeg, gif or webm)",
-			inputPost: post().with("Image", image.Rectangle{}).with("Filename", "file.exe"),
+			inputPost: post().with("Image", "/path/0").with("Filename", "file.exe"),
 			want:      false,
 		},
 		{
 			name:      "fails validation for zip (non png, jpg, jpeg, gif or webm)",
-			inputPost: post().with("Image", image.Rectangle{}).with("Filename", "file.zip"),
+			inputPost: post().with("Image", "/path/0").with("Filename", "file.zip"),
 			want:      false,
 		},
 		{
 			name:      "fails validation for no file ext (non png, jpg, jpeg, gif or webm)",
-			inputPost: post().with("Image", image.Rectangle{}).with("Filename", "file"),
+			inputPost: post().with("Image", "/path/0").with("Filename", "file"),
 			want:      false,
 		},
 		{
 			name:      "fails validation for no file name (non png, jpg, jpeg, gif or webm)",
-			inputPost: post().with("Image", image.Rectangle{}).with("Filename", ""),
+			inputPost: post().with("Image", "/path/0").with("Filename", ""),
 			want:      false,
 		},
 		{
 			name:      "fails validation for double filename (non png, jpg, jpeg, gif or webm)",
-			inputPost: post().with("Image", image.Rectangle{}).with("Filename", "file.jpg.exe"),
+			inputPost: post().with("Image", "/path/0").with("Filename", "file.jpg.exe"),
 			want:      false,
 		},
 		{
 			name:      "passes validation for image with no message",
-			inputPost: post().with("Image", image.Rectangle{}).with("Filename", "file.png").with("Comment", ""),
+			inputPost: post().with("Image", "/path/0").with("Filename", "file.png").with("Comment", ""),
 			want:      true,
 		},
 	}
@@ -184,7 +183,7 @@ func TestPost_update(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.inputPost.update(); !reflect.DeepEqual(got, tt.want) {
+			if got := tt.inputPost.update(1); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("update() = %v, want %v", got, tt.want)
 			}
 		})
@@ -207,7 +206,7 @@ func TestStore_AddPost(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "first post is created with incremented post no and post is added",
+			name: "first post is created with incremented post no and post is added to thread",
 			fields: fields{
 				db:    data.NewMemoryDB(),
 				count: 4,
@@ -225,13 +224,15 @@ func TestStore_AddPost(t *testing.T) {
 				db:    tt.fields.db,
 				count: tt.fields.count,
 			}
-			got, err := store.AddPost(tt.args.post)
+			_ = store.db.Set(thread()) // thread in database has number 0
+
+			got, err := store.AddPost("0", tt.args.post)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("AddThread() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("AddPost() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !tt.want(tt.args.post, got, *store) {
-				t.Errorf("AddThread() got = %v, want %v", got, runtime.FuncForPC(reflect.ValueOf(tt.want).Pointer()).Name())
+				t.Errorf("AddPost() got = %v, want %v", got, runtime.FuncForPC(reflect.ValueOf(tt.want).Pointer()).Name())
 			}
 		})
 	}
@@ -239,7 +240,7 @@ func TestStore_AddPost(t *testing.T) {
 
 // Utility functions
 func post() Post {
-	return New(0, time.Unix(0, 0), "Anonymous", "", "Hello World!", image.Rectangle{}, "file.png", "")
+	return NewPost(0, time.Unix(0, 0), "Anonymous", "", "Hello World!", "/path/0", "file.png", "")
 }
 
 func (p Post) with(fieldName string, value interface{}) Post {
@@ -247,11 +248,17 @@ func (p Post) with(fieldName string, value interface{}) Post {
 	return p
 }
 
-func countIsIncrementedForPost(input Post, returnValue uint64, store Store) bool {
-	get, err := store.db.Get(input.Key())
-	if err == nil && store.count == 5 && input.String() == get {
+func countIsIncrementedForPost(input Post, _ uint64, store Store) bool {
+	get, err := store.db.Get("0")
+
+	expectedPost := input
+	expectedPost.No = 4
+
+	got, _ := newThreadFrom(get)
+	if err == nil && store.count == 5 && reflect.DeepEqual(expectedPost, got.Replies[0]) {
 		return true
 	}
-	println("Count was not incremented and/or DB does not contain thread")
+
+	println("Count was not incremented and/or DB does not contain the post")
 	return false
 }

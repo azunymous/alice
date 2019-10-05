@@ -3,17 +3,19 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/alice-ws/alice/board"
 	"github.com/alice-ws/alice/data"
 	"github.com/alice-ws/alice/redisclient"
 	"github.com/alice-ws/alice/users"
+	"github.com/julienschmidt/httprouter"
 	"github.com/spf13/viper"
+	"io/ioutil"
 	"log"
 	"net/http"
-
-	"github.com/julienschmidt/httprouter"
 )
 
 var userStore *users.Store
+var threadStore *board.Store
 
 type statusResponse struct {
 	Status string `json:"status"`
@@ -25,6 +27,24 @@ type userResponse struct {
 	Error    string `json:"error"`
 	Token    string `json:"token"`
 }
+
+type boardRequest struct {
+	ThreadNo string     `json:"thread_no"`
+	Post     board.Post `json:"post"`
+	Type     string     `json:"type"`
+}
+
+type boardResponse struct {
+	Status string       `json:"status"`
+	No     string       `json:"no"`
+	Thread board.Thread `json:"thread"`
+	Type   string       `json:"type"`
+}
+
+const (
+	Thread = "THREAD"
+	Post   = "POST"
+)
 
 func configuration() {
 	viper.SetDefault("server.port", ":8080")
@@ -145,6 +165,78 @@ func verifyUserHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Para
 
 }
 
+// TODO use board response instead
+func addThreadHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	body, err := ioutil.ReadAll(r.Body)
+	log.Println(string(body))
+	var t board.Thread
+	err = json.Unmarshal(body, &t)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(userResponse{Status: "FAILURE"})
+		return
+	}
+
+	_, err = threadStore.AddThread(t)
+
+	if err != nil {
+		w.WriteHeader(http.StatusFailedDependency)
+		_ = json.NewEncoder(w).Encode(userResponse{Status: "FAILURE"})
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	_ = json.NewEncoder(w).Encode(userResponse{
+		Status: "SUCCESS",
+	})
+}
+
+func getThreadHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+
+	threadNo := r.URL.Query().Get("no")
+	if threadNo == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(boardResponse{Status: "FAILURE"})
+		return
+	}
+	t, err := threadStore.GetThread(threadNo)
+
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		_ = json.NewEncoder(w).Encode(boardResponse{Status: "FAILURE"})
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(boardResponse{No: threadNo, Thread: t, Type: Thread})
+
+}
+
+func addPostHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	body, err := ioutil.ReadAll(r.Body)
+	log.Println(string(body))
+	var request boardRequest
+	err = json.Unmarshal(body, &request)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(userResponse{Status: "FAILURE"})
+		return
+	}
+
+	_, err = threadStore.AddPost(request.ThreadNo, request.Post)
+
+	if err != nil {
+		w.WriteHeader(http.StatusFailedDependency)
+		_ = json.NewEncoder(w).Encode(userResponse{Status: "FAILURE"})
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	_ = json.NewEncoder(w).Encode(userResponse{
+		Status: "SUCCESS",
+	})
+}
+
 func handler() http.Handler {
 	router := httprouter.New()
 	router.GET("/", homePageHandler)
@@ -153,6 +245,9 @@ func handler() http.Handler {
 	router.POST("/anonregister", anonRegisterHandler)
 	router.POST("/login", loginHandler)
 	router.POST("/verify", verifyUserHandler)
+	router.POST("/thread", addThreadHandler)
+	router.GET("/thread", getThreadHandler)
+	router.POST("/post", addPostHandler)
 
 	return router
 }
@@ -171,9 +266,11 @@ func setup() string {
 	if redisErr == nil {
 		log.Printf("Connected to redis on " + redisAddr)
 		userStore = users.NewStore(rc, tokenKey)
+		threadStore = board.NewStore(rc)
 	} else {
 		log.Printf("Cannot connect to redis " + redisErr.Error())
 		userStore = users.NewStore(data.NewMemoryDB(), tokenKey)
+		threadStore = board.NewStore(data.NewMemoryDB())
 	}
 	log.Printf("Starting on " + port)
 	return port

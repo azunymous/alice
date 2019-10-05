@@ -31,7 +31,7 @@ func (s *Store) Ping() bool {
 	return true
 }
 
-func (s *Store) Add(kv data.KeyValue) error {
+func (s *Store) Set(kv data.KeyValue) error {
 	_, err := s.client.Set(kv.Key(), kv.String(), 0).Result()
 	return err
 }

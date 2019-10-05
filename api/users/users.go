@@ -98,7 +98,7 @@ func fieldsAreValid(email, username, password string) (bool, error) {
 }
 
 func (store *Store) registerInDatabase(email, username, pwd string) error {
-	err := store.db.Add(&User{
+	err := store.db.Set(&User{
 		email:    email,
 		Username: username,
 		password: pwd,
