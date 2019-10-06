@@ -238,6 +238,20 @@ func TestStore_AddPost(t *testing.T) {
 	}
 }
 
+func TestStore_AddPost_countDoesNotIncreaseInError(t *testing.T) {
+	store := &Store{
+		db:    data.NewMemoryDB(),
+		count: 1,
+	}
+	_ = store.db.Set(thread()) // thread in database has number 0
+
+	_, err := store.AddPost("99", post().with("No", uint64(1)))
+
+	if err == nil || store.count != 1 {
+		t.Errorf("Expected error and count to be unchanged, got %d, want 1", store.count)
+	}
+}
+
 // Utility functions
 func post() Post {
 	return NewPost(0, time.Unix(0, 0), "Anonymous", "", "Hello World!", "/path/0", "file.png", "")

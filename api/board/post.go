@@ -77,6 +77,8 @@ func (p Post) update(postCount uint64) Post {
 		p.Meta = p.Email
 		p.Email = ""
 	}
+
+	p.Timestamp = time.Now()
 	return p
 }
 

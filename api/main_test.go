@@ -363,6 +363,38 @@ func Test_AddPostSuccess_generatesPostNo(t *testing.T) {
 	}
 }
 
+func Test_AddPostFailure_InvalidThreadNo(t *testing.T) {
+	threadStore = board.NewStore(nil)
+	threadInDB := board.NewThread(examplePost(), "a subject")
+	_, _ = threadStore.AddThread(threadInDB) // Thread number is 0
+
+	endpoint := "/post"
+	method := "POST"
+
+	post := examplePost()
+	request := boardRequest{
+		ThreadNo: "99",
+		Post:     post,
+		Type:     "POST",
+	}
+
+	bytes, _ := json.Marshal(request)
+
+	rr := createRequestAndServe(method, endpoint, strings.NewReader(string(bytes)), requestCreatorJson)
+
+	// Check the status code is what we expect.
+	checkStatusCode(rr.Code, http.StatusBadRequest, t)
+
+	response := &userResponse{}
+	_ = json.Unmarshal(rr.Body.Bytes(), response)
+
+	checkResponse(response, "FAILURE", t)
+	threadInDB, err := threadStore.GetThread("0")
+	if err != nil || len(threadInDB.Replies) != 0 {
+		t.Errorf("Thread in DB incorrect: got %v want no replies", threadInDB)
+	}
+}
+
 // Test Utilities
 var h = handler()
 

@@ -67,8 +67,8 @@ func homePageHandler(w http.ResponseWriter, _ *http.Request, _ httprouter.Params
 }
 
 func healthcheckHandler(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
-	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	status := statusResponse{
 		Status: "HEALTHY",
 	}
@@ -156,12 +156,28 @@ func verifyUserHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Para
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(userResponse{
 		Status:   "SUCCESS",
 		Username: username,
 		Token:    token,
 	})
+
+}
+
+func getAllThreadsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	t, err := threadStore.GetAllThreads()
+
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		_ = json.NewEncoder(w).Encode(boardResponse{Status: "FAILURE"})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(t)
 
 }
 
@@ -185,6 +201,7 @@ func addThreadHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Param
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	_ = json.NewEncoder(w).Encode(userResponse{
 		Status: "SUCCESS",
@@ -207,6 +224,7 @@ func getThreadHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Param
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(boardResponse{No: threadNo, Thread: t, Type: Thread})
 
@@ -226,11 +244,12 @@ func addPostHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params)
 	_, err = threadStore.AddPost(request.ThreadNo, request.Post)
 
 	if err != nil {
-		w.WriteHeader(http.StatusFailedDependency)
+		w.WriteHeader(http.StatusBadRequest)
 		_ = json.NewEncoder(w).Encode(userResponse{Status: "FAILURE"})
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	_ = json.NewEncoder(w).Encode(userResponse{
 		Status: "SUCCESS",
@@ -245,6 +264,7 @@ func handler() http.Handler {
 	router.POST("/anonregister", anonRegisterHandler)
 	router.POST("/login", loginHandler)
 	router.POST("/verify", verifyUserHandler)
+	router.GET("/thread/all", getAllThreadsHandler)
 	router.POST("/thread", addThreadHandler)
 	router.GET("/thread", getThreadHandler)
 	router.POST("/post", addPostHandler)

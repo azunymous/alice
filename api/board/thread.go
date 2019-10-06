@@ -4,12 +4,14 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/alice-ws/alice/data"
+	"strconv"
 	"sync/atomic"
 )
 
 type Store struct {
-	db    data.DB
-	count uint64
+	db      data.DB
+	count   uint64
+	threads []uint64
 }
 
 func NewStore(db data.DB) *Store {
@@ -18,8 +20,9 @@ func NewStore(db data.DB) *Store {
 	}
 
 	return &Store{
-		db:    db,
-		count: 0,
+		db:      db,
+		count:   0,
+		threads: []uint64{},
 	}
 }
 
@@ -56,28 +59,44 @@ func (store *Store) AddThread(thread Thread) (uint64, error) {
 
 	thread.Post = thread.update(store.count)
 	err := store.db.Set(thread)
+	store.threads = append(store.threads, thread.Post.No)
 	return thread.Post.No, err
+}
+
+func (store *Store) GetAllThreads() ([]Thread, error) {
+	var threads []Thread
+
+	for _, t := range store.threads {
+		threadString, err := store.db.Get(strconv.FormatUint(t, 10))
+		thread, err := newThreadFrom(threadString)
+		if err != nil {
+			return []Thread{}, errors.New("error getting threads")
+		}
+
+		threads = append(threads, thread)
+	}
+
+	return threads, nil
 }
 
 func (store *Store) GetThread(no string) (Thread, error) {
 	threadString, err := store.db.Get(no)
 	if err != nil {
-		return Thread{}, nil
+		return Thread{}, errors.New("no such thread found")
 	}
 	return newThreadFrom(threadString)
 }
 
 // TODO validate and set post no
 func (store *Store) AddPost(threadNo string, post Post) (uint64, error) {
-	atomic.AddUint64(&store.count, 1)
-
-	post = post.update(store.count)
-
 	thread, err := store.GetThread(threadNo)
 
 	if err != nil {
 		return 0, err
 	}
+
+	atomic.AddUint64(&store.count, 1)
+	post = post.update(store.count)
 
 	thread.Replies = append(thread.Replies, post)
 	err = store.db.Set(thread)

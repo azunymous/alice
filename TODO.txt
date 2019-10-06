@@ -1,0 +1,11 @@
+TODO
+- Split threads and posts in board component into subcomponents, using props to pass in the objects
+- Replace thread array with thread store to keep list of all threads or find better datastructure
+- Rethink data structure for threads/posts
+
+- Add tests for get all threads
+- Improve CSS for board
+
+- Add validation to addPost/addThread
+- Add image upload
+- Add formatting utilities for OP.
