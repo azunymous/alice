@@ -42,6 +42,16 @@ func NewPost(newPostNo uint64, time time.Time, name, email, comment string, imag
 	}
 }
 
+func CreatePost(name, email, comment string) Post {
+	return Post{
+		Timestamp: time.Time{},
+		Name:      name,
+		Email:     email,
+		Comment:   comment,
+		QuotedBy: make([]uint64, 0),
+	}
+}
+
 func newPostFrom(mjson string) (Post, error) {
 	var p Post
 	err := json.Unmarshal([]byte(mjson), &p)
@@ -79,6 +89,7 @@ func (p Post) update(postCount uint64) Post {
 	}
 
 	p.Timestamp = time.Now()
+
 	return p
 }
 

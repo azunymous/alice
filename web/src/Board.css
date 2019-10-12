@@ -1,6 +1,6 @@
 body {
     background-color: #EBF4FE;
-    font-family: "Sylfaen", "Times New Roman" ,"Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-family: "Sylfaen", "Times New Roman", "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 12pt;
     margin: 0px;
 }
@@ -15,10 +15,12 @@ h1 {
 }
 
 h2 {
+    text-align: center;
     font-size: 16px;
     letter-spacing: 1px;
     margin-top: 0px;
     margin-bottom: 5px;
+    padding-bottom: 20px;
 }
 
 .clickable {
@@ -41,8 +43,16 @@ del, del em {
     color: black;
     text-decoration: none;
 }
+
 del:hover, del:hover em, del.reveal, del.reveal em {
     color: white;
+}
+
+hr {
+    clear: both;
+    border: none;
+    height: 0;
+    border-top: #253371 1px solid;
 }
 
 span.postName {
@@ -52,12 +62,11 @@ span.postName {
 div.outer {
     background-color: #EBF4FE;
     position: absolute;
-    left: 50%;
-    margin-left: -400px;
-    width: 800px;
+    margin-left: 10%;
+    margin-right: 10%;
+    width: 80%;
     min-height: 100%;
     height: auto !important;
-    height: 100%;
 }
 
 div.post {
@@ -70,26 +79,58 @@ div.post {
     margin-top: 5px;
     margin-left: 5px;
     margin-right: 5px;
+    min-width: 40%;
+    display: table;
+}
+
+.postHeader {
+    display: block;
 }
 
 div.thread {
-    background-color: #CAD0E7;
-    border-right: 1px solid #b9d9b7;
-    border-bottom: 1px solid #b9d9b7;
+    /*background-color: #CAD0E7;*/
+    /*border-right: 1px solid #b9d9b7;*/
+    /*border-bottom: 1px solid #b9d9b7;*/
     padding-top: 7px;
     padding-bottom: 7px;
     padding-left: 10px;
     margin-top: 5px;
     margin-left: 5px;
     margin-right: 5px;
+    min-height: 50px;
+    clear: both;
 }
 
-div.new {
+.threadHeader {
+    display: block;
+}
+
+.content {
+    padding: 7px;
+    display: block;
+}
+
+.image {
+    padding: 10px;
+    min-height: 150px;
+    min-width: 150px;
+    float: left;
+}
+.image img {
+    max-height: 500px;
+    max-width: 500px;
+}
+
+div.reply {
+    margin-left: 30%;
+    margin-right: 30%;
+    width: 40%;
 }
 
 ol {
     margin: 0px;
 }
+
 .way img {
     margin-top: 4px;
     margin-left: 8px;

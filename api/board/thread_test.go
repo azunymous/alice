@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"runtime"
 	"testing"
+	"time"
 )
 
 func TestStore_AddThread(t *testing.T) {
@@ -77,7 +78,10 @@ func TestThread_String(t *testing.T) {
 
 func incrementedForFirstThread(input Thread, returnValue uint64, store Store) bool {
 	get, err := store.db.Get(input.Key())
-	if err == nil && store.count == 1 && input.String() == get {
+	input.Timestamp = time.Time{}
+	gotThread, _ := newThreadFrom(get)
+	gotThread.Timestamp = time.Time{}
+	if err == nil && store.count == 1 && input.String() == gotThread.String() {
 		return true
 	}
 	println("Count was incremented and/or DB does not contain thread")
@@ -86,8 +90,10 @@ func incrementedForFirstThread(input Thread, returnValue uint64, store Store) bo
 
 func threadIsReadable(input Thread, returnValue uint64, store Store) bool {
 	input.Post.No = 1
+	input.Timestamp = time.Time{}
 	get, err := store.db.Get(input.Key())
 	outputAsThread, _ := newThreadFrom(get)
+	outputAsThread.Timestamp = time.Time{}
 	if err == nil && store.count == 2 && reflect.DeepEqual(input, outputAsThread) {
 		return true
 	}

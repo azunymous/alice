@@ -12,6 +12,8 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 )
 
 var userStore *users.Store
@@ -51,6 +53,9 @@ func configuration() {
 	viper.SetDefault("redis.addr", "localhost:6379")
 	viper.SetDefault("jwt.key", "KEYGOESHERE")
 	viper.SetDefault("users", map[string]string{"alice": "admin"})
+	//TODO deal with below
+	dir, _ := os.Getwd()
+	viper.SetDefault("board.images.dir", filepath.Join(filepath.Dir(dir), "/web/public/images"))
 	viper.SetConfigName("config")       // name of config file (without extension)
 	viper.AddConfigPath(".")            // optionally look for config in the working directory
 	viper.AddConfigPath("/alice/")      // path to look for the config file in
@@ -181,17 +186,45 @@ func getAllThreadsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.P
 
 }
 
-// TODO use board response instead
 func addThreadHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	body, err := ioutil.ReadAll(r.Body)
-	log.Println(string(body))
-	var t board.Thread
-	err = json.Unmarshal(body, &t)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(userResponse{Status: "FAILURE"})
+	err := r.ParseMultipartForm(10 << 20)
+
+	if badRequest(err, w) {
 		return
 	}
+	name := r.FormValue("name")
+	email := r.FormValue("email")
+	subject := r.FormValue("subject")
+	comment := r.FormValue("comment")
+	post := board.CreatePost(name, email, comment)
+
+	_, header, err := r.FormFile("image")
+	if badRequest(err, w) {
+		return
+	}
+	image, err := header.Open()
+	if badRequest(err, w) {
+		return
+	}
+
+	post.Filename = header.Filename
+
+	dir := viper.GetString("board.images.dir")
+	tempImage, err := ioutil.TempFile(dir, "*-" + header.Filename)
+	inMemoryImage, err := ioutil.ReadAll(image)
+	if badRequest(err, w) {
+		return
+	}
+
+	_, err = tempImage.Write(inMemoryImage)
+	if badRequest(err, w) {
+		return
+	}
+
+	post.Image = filepath.Base(tempImage.Name())
+
+	log.Printf("Add Thread: %v with subject %s", post, subject)
+	t := board.NewThread(post, subject)
 
 	_, err = threadStore.AddThread(t)
 
@@ -206,6 +239,15 @@ func addThreadHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Param
 	_ = json.NewEncoder(w).Encode(userResponse{
 		Status: "SUCCESS",
 	})
+}
+
+func badRequest(err error, w http.ResponseWriter) bool {
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(boardResponse{Status: "FAILURE"})
+		return true
+	}
+	return false
 }
 
 func getThreadHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {

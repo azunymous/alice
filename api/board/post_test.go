@@ -183,7 +183,7 @@ func TestPost_update(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.inputPost.update(1); !reflect.DeepEqual(got, tt.want) {
+			if got := tt.inputPost.update(1); !equalToIgnoringTime(got, tt.want) {
 				t.Errorf("update() = %v, want %v", got, tt.want)
 			}
 		})
@@ -262,6 +262,12 @@ func (p Post) with(fieldName string, value interface{}) Post {
 	return p
 }
 
+func equalToIgnoringTime(p, p2 Post) bool {
+	p.Timestamp = time.Unix(0, 0)
+	p2.Timestamp = time.Unix(0, 0)
+	return reflect.DeepEqual(p, p2)
+}
+
 func countIsIncrementedForPost(input Post, _ uint64, store Store) bool {
 	get, err := store.db.Get("0")
 
@@ -269,7 +275,7 @@ func countIsIncrementedForPost(input Post, _ uint64, store Store) bool {
 	expectedPost.No = 4
 
 	got, _ := newThreadFrom(get)
-	if err == nil && store.count == 5 && reflect.DeepEqual(expectedPost, got.Replies[0]) {
+	if err == nil && store.count == 5 && equalToIgnoringTime(expectedPost, got.Replies[0]) {
 		return true
 	}
 

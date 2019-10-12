@@ -1,11 +1,15 @@
 TODO
+- Test in Kubernetes and use kustomize for resource files
+- Think of better solution for formatting server and client side
+- Add image upload and replying to threads
 - Split threads and posts in board component into subcomponents, using props to pass in the objects
 - Replace thread array with thread store to keep list of all threads or find better datastructure
 - Rethink data structure for threads/posts
 
+- Improve/create tooling for comparing structs whiling ignoring some or find better way of stopping time
+
 - Add tests for get all threads
-- Improve CSS for board
+- Add full black box tests for addThread and addPost with image upload
 
 - Add validation to addPost/addThread
-- Add image upload
 - Add formatting utilities for OP.
