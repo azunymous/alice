@@ -48,7 +48,7 @@ func CreatePost(name, email, comment string) Post {
 		Name:      name,
 		Email:     email,
 		Comment:   comment,
-		QuotedBy: make([]uint64, 0),
+		QuotedBy:  make([]uint64, 0),
 	}
 }
 
@@ -65,7 +65,7 @@ func addPostQuotedBy(p Post, postQuotingNo uint64) {
 	p.QuotedBy = append(p.QuotedBy, postQuotingNo)
 }
 
-func (p Post) isValid() bool {
+func (p Post) IsValid() bool {
 	if len(p.Comment) < 1 && p.Image == "" {
 		return false
 	}

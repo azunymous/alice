@@ -1,13 +1,14 @@
 TODO
-- Add image upload and replying to threads
-- Test in Kubernetes and use kustomize for resource files
-
+- Deploy to Kubernetes and use kustomize for resource files
 
 - Add full black box tests for addThread and addPost with image upload
 
 - Think of better solution for formatting server and client side
 - Split threads and posts in board component into subcomponents, using props to pass in the objects
-- Replace thread array with thread store to keep list of all threads or find better datastructure
+- Replace thread array with thread store to keep list of all threads or find better data structure
+- Trim thread/all to remove unnecessary replies
+- Add bumping
+- Add pagination
 - Rethink data structure for threads/posts
 
 - Improve/create tooling for comparing structs whiling ignoring some or find better way of stopping time
@@ -15,4 +16,5 @@ TODO
 - Add tests for get all threads
 
 - Add validation to addPost/addThread
+- Validate both filename and filepath
 - Add formatting utilities for OP.

@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/alice-ws/alice/board"
 	"github.com/alice-ws/alice/data"
@@ -280,7 +281,7 @@ func addPostHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params)
 	}
 	name := r.FormValue("name")
 	email := r.FormValue("email")
-	thread := r.FormValue("thread")
+	thread := r.FormValue("threadNo")
 	comment := r.FormValue("comment")
 	post := board.CreatePost(name, email, comment)
 
@@ -308,6 +309,12 @@ func addPostHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params)
 
 		post.Image = filepath.Base(tempImage.Name())
 	}
+
+	if !post.IsValid() {
+		badRequest(errors.New("Invalid Post: "+post.String()), w)
+		return
+	}
+
 	log.Printf("Add Post: %v in thread %s", post, thread)
 	_, err = threadStore.AddPost(thread, post)
 

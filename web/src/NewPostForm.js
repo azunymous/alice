@@ -1,10 +1,18 @@
 import React from 'react';
 import './Board.css';
 
-class NewThreadForm extends React.Component {
+class NewPostForm extends React.Component {
     constructor(props) {
         super(props);
-        this.state = {email: 'noko', comment: '', filename: '', image: null, error: null};
+        this.state = {
+            email: 'noko',
+            comment: '',
+            subject: '',
+            filename: '',
+            threadNo: this.props.threadNo || null,
+            image: null,
+            error: null
+        };
         this.fileInput = React.createRef();
 
         this.handleInputChange = this.handleInputChange.bind(this);
@@ -28,11 +36,11 @@ class NewThreadForm extends React.Component {
 
     handleSubmit(event) {
         event.preventDefault();
-        this.uploadForm(event)
+        this.uploadForm()
     }
 
-    uploadForm(event) {
-        if (this.state.image === null) {
+    uploadForm() {
+        if (this.state.image === null && this.state.threadNo === null) {
             this.setState({error: "Image required!"});
             return;
         }
@@ -40,10 +48,22 @@ class NewThreadForm extends React.Component {
         let data = new FormData();
         data.append("email", this.state.email);
         data.append("comment", this.state.comment);
-        data.append("image", this.state.image);
-        data.append("filename", this.state.image.name);
 
-        fetch('/thread', {
+        if (this.state.image !== null) {
+            data.append("filename", this.state.image.name);
+            data.append("image", this.state.image);
+        }
+
+        let apiURL;
+        if (this.state.threadNo === null) {
+            apiURL = '/thread';
+            data.append("subject", this.state.subject)
+        } else {
+            apiURL = '/post';
+            data.append("threadNo", this.state.threadNo)
+        }
+
+        fetch(apiURL, {
             method: 'POST',
             body: data,
         }).then((res) => {
@@ -88,5 +108,4 @@ class NewThreadForm extends React.Component {
     }
 }
 
-
-export default NewThreadForm
+export default NewPostForm

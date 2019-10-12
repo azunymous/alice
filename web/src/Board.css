@@ -59,6 +59,13 @@ span.postName {
     font-weight: bold;
 }
 
+#menu ul{
+    list-style: none;
+}
+#menu li{
+    display: inline;
+}
+
 div.outer {
     background-color: #EBF4FE;
     position: absolute;
@@ -84,13 +91,10 @@ div.post {
 }
 
 .postHeader {
-    display: block;
+    display: table;
 }
 
 div.thread {
-    /*background-color: #CAD0E7;*/
-    /*border-right: 1px solid #b9d9b7;*/
-    /*border-bottom: 1px solid #b9d9b7;*/
     padding-top: 7px;
     padding-bottom: 7px;
     padding-left: 10px;
