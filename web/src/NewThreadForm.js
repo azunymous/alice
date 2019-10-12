@@ -4,7 +4,7 @@ import './Board.css';
 class NewThreadForm extends React.Component {
     constructor(props) {
         super(props);
-        this.state = {email: 'noko', comment: '', filename: '', image: null};
+        this.state = {email: 'noko', comment: '', filename: '', image: null, error: null};
         this.fileInput = React.createRef();
 
         this.handleInputChange = this.handleInputChange.bind(this);
@@ -32,30 +32,41 @@ class NewThreadForm extends React.Component {
     }
 
     uploadForm(event) {
-        let data = new FormData();
+        if (this.state.image === null) {
+            this.setState({error: "Image required!"});
+            return;
+        }
 
+        let data = new FormData();
         data.append("email", this.state.email);
-        data.append("comment", this.state.comment)
+        data.append("comment", this.state.comment);
         data.append("image", this.state.image);
-        data.append("filename", this.state.image.name)
+        data.append("filename", this.state.image.name);
 
         fetch('/thread', {
             method: 'POST',
             body: data,
         }).then((res) => {
             if (res.ok) {
-                console.log("Post Success!")
+                console.log("Post Success!");
+                this.setState({});
                 window.location.reload()
             } else {
                 console.log(res.status + " " + res.statusText);
             }
         });
+    }
 
+    showError() {
+        return (
+            <div className="error">{this.state.error}</div>
+        )
     }
 
     render() {
         return (
             <div className="reply">
+                {this.showError()}
                 <form onSubmit={this.handleSubmit}>
                     <label>
                         Email:

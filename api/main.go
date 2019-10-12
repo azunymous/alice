@@ -81,7 +81,7 @@ func healthcheckHandler(w http.ResponseWriter, _ *http.Request, _ httprouter.Par
 	_ = json.NewEncoder(w).Encode(status)
 }
 
-func anonRegisterHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func anonRegisterHandler(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
 	username, token, err := userStore.AnonymousRegister()
 
 	if err != nil {
@@ -171,7 +171,7 @@ func verifyUserHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Para
 
 }
 
-func getAllThreadsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func getAllThreadsHandler(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
 	t, err := threadStore.GetAllThreads()
 
 	if err != nil {
@@ -210,7 +210,7 @@ func addThreadHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Param
 	post.Filename = header.Filename
 
 	dir := viper.GetString("board.images.dir")
-	tempImage, err := ioutil.TempFile(dir, "*-" + header.Filename)
+	tempImage, err := ioutil.TempFile(dir, "*-"+header.Filename)
 	inMemoryImage, err := ioutil.ReadAll(image)
 	if badRequest(err, w) {
 		return
@@ -273,21 +273,47 @@ func getThreadHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Param
 }
 
 func addPostHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	body, err := ioutil.ReadAll(r.Body)
-	log.Println(string(body))
-	var request boardRequest
-	err = json.Unmarshal(body, &request)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(userResponse{Status: "FAILURE"})
+	err := r.ParseMultipartForm(10 << 20)
+
+	if badRequest(err, w) {
 		return
 	}
+	name := r.FormValue("name")
+	email := r.FormValue("email")
+	thread := r.FormValue("thread")
+	comment := r.FormValue("comment")
+	post := board.CreatePost(name, email, comment)
 
-	_, err = threadStore.AddPost(request.ThreadNo, request.Post)
+	_, header, err := r.FormFile("image")
+
+	if err == nil {
+		image, err := header.Open()
+		if badRequest(err, w) {
+			return
+		}
+
+		post.Filename = header.Filename
+
+		dir := viper.GetString("board.images.dir")
+		tempImage, err := ioutil.TempFile(dir, "*-"+header.Filename)
+		inMemoryImage, err := ioutil.ReadAll(image)
+		if badRequest(err, w) {
+			return
+		}
+
+		_, err = tempImage.Write(inMemoryImage)
+		if badRequest(err, w) {
+			return
+		}
+
+		post.Image = filepath.Base(tempImage.Name())
+	}
+	log.Printf("Add Post: %v in thread %s", post, thread)
+	_, err = threadStore.AddPost(thread, post)
 
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(userResponse{Status: "FAILURE"})
+		w.WriteHeader(http.StatusFailedDependency)
+		_ = json.NewEncoder(w).Encode(userResponse{Status: "FAILURE", Error: err.Error()})
 		return
 	}
 
@@ -330,7 +356,7 @@ func setup() string {
 		userStore = users.NewStore(rc, tokenKey)
 		threadStore = board.NewStore(rc)
 	} else {
-		log.Printf("Cannot connect to redis " + redisErr.Error())
+		log.Printf("Cannot connect to redis " + redisErr.Error() + " - falling back to in memory database")
 		userStore = users.NewStore(data.NewMemoryDB(), tokenKey)
 		threadStore = board.NewStore(data.NewMemoryDB())
 	}
