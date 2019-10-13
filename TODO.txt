@@ -18,3 +18,6 @@ TODO
 - Add validation to addPost/addThread
 - Validate both filename and filepath
 - Add formatting utilities for OP.
+
+
+- Set up spec for file structure

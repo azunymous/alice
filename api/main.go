@@ -9,6 +9,7 @@ import (
 	"github.com/alice-ws/alice/redisclient"
 	"github.com/alice-ws/alice/users"
 	"github.com/julienschmidt/httprouter"
+	"github.com/rs/cors"
 	"github.com/spf13/viper"
 	"io/ioutil"
 	"log"
@@ -57,23 +58,25 @@ func configuration() {
 	//TODO deal with below
 	dir, _ := os.Getwd()
 	viper.SetDefault("board.images.dir", filepath.Join(filepath.Dir(dir), "/web/public/images"))
-	viper.SetConfigName("config")       // name of config file (without extension)
-	viper.AddConfigPath(".")            // optionally look for config in the working directory
+	viper.SetConfigName("config") // name of config file (without extension)
+	viper.AddConfigPath(".")      // optionally look for config in the working directory
+	viper.AddConfigPath("/config/")
 	viper.AddConfigPath("/alice/")      // path to look for the config file in
 	viper.AddConfigPath("$HOME/.alice") // call multiple times to add many search paths
 	err := viper.ReadInConfig()         // Find and read the config file
 	if err != nil {                     // Handle errors reading the config file
 		panic(fmt.Errorf("Fatal error config file: %s \n", err))
 	}
+	viper.WatchConfig()
 }
 
 func homePageHandler(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
-	w.Header().Set("Content-Type", "application/json")
+	addHeaders(w)
 	_, _ = fmt.Fprintf(w, `{"V" : "1", "data" : "ALICE API"}`)
 }
 
 func healthcheckHandler(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
-	w.Header().Set("Content-Type", "application/json")
+	addHeaders(w)
 	w.WriteHeader(http.StatusOK)
 	status := statusResponse{
 		Status: "HEALTHY",
@@ -108,7 +111,7 @@ func registerHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params
 
 	token, err := userStore.Register(email, username, password)
 
-	w.Header().Set("Content-Type", "application/json")
+	addHeaders(w)
 
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -162,7 +165,7 @@ func verifyUserHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Para
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	addHeaders(w)
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(userResponse{
 		Status:   "SUCCESS",
@@ -181,7 +184,7 @@ func getAllThreadsHandler(w http.ResponseWriter, _ *http.Request, _ httprouter.P
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	addHeaders(w)
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(t)
 
@@ -235,7 +238,7 @@ func addThreadHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Param
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	addHeaders(w)
 	w.WriteHeader(http.StatusCreated)
 	_ = json.NewEncoder(w).Encode(userResponse{
 		Status: "SUCCESS",
@@ -244,6 +247,7 @@ func addThreadHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Param
 
 func badRequest(err error, w http.ResponseWriter) bool {
 	if err != nil {
+		log.Printf("Error: %s", err.Error())
 		w.WriteHeader(http.StatusBadRequest)
 		_ = json.NewEncoder(w).Encode(boardResponse{Status: "FAILURE"})
 		return true
@@ -267,7 +271,7 @@ func getThreadHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Param
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	addHeaders(w)
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(boardResponse{No: threadNo, Thread: t, Type: Thread})
 
@@ -324,11 +328,15 @@ func addPostHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	addHeaders(w)
 	w.WriteHeader(http.StatusCreated)
 	_ = json.NewEncoder(w).Encode(userResponse{
 		Status: "SUCCESS",
 	})
+}
+
+func addHeaders(w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "application/json")
 }
 
 func handler() http.Handler {
@@ -344,7 +352,7 @@ func handler() http.Handler {
 	router.GET("/thread", getThreadHandler)
 	router.POST("/post", addPostHandler)
 
-	return router
+	return cors.Default().Handler(router)
 }
 
 func main() {

@@ -1,0 +1,5 @@
+board:
+  images:
+    dir: \images
+redis:
+  addr: redis:6379

@@ -1,0 +1,13 @@
+nameSuffix: -development
+commonLabels:
+  variant: development
+commonAnnotations:
+  note: This is a development environment
+bases:
+  - ../../base
+configMapGenerator:
+  - name: alice-config
+    files:
+      - config.yaml
+patchesStrategicMerge:
+  - deployment.yaml

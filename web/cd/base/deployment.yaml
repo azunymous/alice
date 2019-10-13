@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alice
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alice-web
+  template:
+    metadata:
+      labels:
+        app: alice-web
+    spec:
+      containers:
+        - name: alice-web
+          image: alice-web:0.0.1
+          ports:
+            - containerPort: 5000

@@ -14,7 +14,7 @@ class Board extends React.Component {
 
 
     getAllThreads() {
-        fetch('/thread/all/')
+        fetch(process.env.REACT_APP_API_URL + '/thread/all/')
             .then((response) => {
                 return response.json()
             })

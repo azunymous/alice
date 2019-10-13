@@ -1,0 +1,6 @@
+commonLabels:
+  app: alice
+namespace: alice
+resources:
+  - deployment.yaml
+  - service.yaml

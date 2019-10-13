@@ -54,12 +54,12 @@ class NewPostForm extends React.Component {
             data.append("image", this.state.image);
         }
 
-        let apiURL;
+        let apiURL = process.env.REACT_APP_API_URL
         if (this.state.threadNo === null) {
-            apiURL = '/thread';
+            apiURL = apiURL + '/thread';
             data.append("subject", this.state.subject)
         } else {
-            apiURL = '/post';
+            apiURL = apiURL + '/post';
             data.append("threadNo", this.state.threadNo)
         }
 
@@ -74,7 +74,7 @@ class NewPostForm extends React.Component {
             } else {
                 console.log(res.status + " " + res.statusText);
             }
-        });
+        }).catch(console.log);
     }
 
     showError() {

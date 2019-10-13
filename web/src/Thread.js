@@ -22,7 +22,7 @@ class Thread extends React.Component {
     }
 
     getThread() {
-        fetch('/thread?no=' + this.state.no)
+        fetch(process.env.REACT_APP_API_URL + '/thread?no=' + this.state.no)
             .then((response) => {
                 return response.json()
             })

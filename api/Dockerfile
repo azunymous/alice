@@ -1,6 +1,6 @@
-FROM golang:latest
+FROM golang:1.12
 WORKDIR /alice
-COPY ./api/ /alice/
+COPY . /alice/
 
 RUN go build
 ENTRYPOINT ["./alice"]
