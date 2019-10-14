@@ -1,7 +1,8 @@
 FROM golang:1.12
 WORKDIR /alice
 COPY . /alice/
-RUN go build
+RUN GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build
+RUN ls
 
 FROM alpine:latest
 RUN apk --no-cache add ca-certificates

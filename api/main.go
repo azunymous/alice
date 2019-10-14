@@ -65,9 +65,11 @@ func configuration() {
 	viper.AddConfigPath("$HOME/.alice") // call multiple times to add many search paths
 	err := viper.ReadInConfig()         // Find and read the config file
 	if err != nil {                     // Handle errors reading the config file
-		panic(fmt.Errorf("Fatal error config file: %s \n", err))
+		log.Printf("Config file error: %s \n", err)
+	} else {
+		log.Printf("Watching config file")
+		viper.WatchConfig()
 	}
-	viper.WatchConfig()
 }
 
 func homePageHandler(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
