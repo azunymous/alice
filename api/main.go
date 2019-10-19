@@ -12,7 +12,6 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/rs/cors"
 	"github.com/spf13/viper"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -22,6 +21,8 @@ import (
 var userStore *users.Store
 var threadStore *board.Store
 var mediaRepo data.MediaRepo
+
+const imageGroup = "images"
 
 type statusResponse struct {
 	Status string `json:"status"`
@@ -221,21 +222,15 @@ func addThreadHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Param
 		return
 	}
 
+	URI, err := mediaRepo.Store(image, imageGroup, mediaRepo.GenerateUniqueName(header.Filename), header.Size)
+
 	post.Filename = header.Filename
 
-	dir := viper.GetString("board.images.dir")
-	tempImage, err := ioutil.TempFile(dir, "*-"+header.Filename)
-	inMemoryImage, err := ioutil.ReadAll(image)
 	if badRequest(err, w) {
 		return
 	}
 
-	_, err = tempImage.Write(inMemoryImage)
-	if badRequest(err, w) {
-		return
-	}
-
-	post.Image = filepath.Base(tempImage.Name())
+	post.Image = URI
 
 	log.Printf("Add Thread: %v with subject %s", post, subject)
 	t := board.NewThread(post, subject)
@@ -307,21 +302,15 @@ func addPostHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params)
 			return
 		}
 
+		URI, err := mediaRepo.Store(image, imageGroup, header.Filename, header.Size)
+
 		post.Filename = header.Filename
 
-		dir := viper.GetString("board.images.dir")
-		tempImage, err := ioutil.TempFile(dir, "*-"+header.Filename)
-		inMemoryImage, err := ioutil.ReadAll(image)
 		if badRequest(err, w) {
 			return
 		}
 
-		_, err = tempImage.Write(inMemoryImage)
-		if badRequest(err, w) {
-			return
-		}
-
-		post.Image = filepath.Base(tempImage.Name())
+		post.Image = URI
 	}
 
 	if !post.IsValid() {
@@ -387,8 +376,7 @@ func setup() string {
 		threadStore = board.NewStore(data.NewMemoryDB())
 	}
 
-	const defaultBucket = "images"
-	mc, minioErr := minioclient.ConnectToMinioWithTimeout(minioAddr, defaultBucket, viper.GetString("minio.access"), viper.GetString("minio.secret"))
+	mc, minioErr := minioclient.ConnectToMinioWithTimeout(minioAddr, imageGroup, viper.GetString("minio.access"), viper.GetString("minio.secret"))
 	if minioErr == nil {
 		log.Printf("Connected to minio on " + minioAddr)
 		mediaRepo = mc

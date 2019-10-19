@@ -3,7 +3,11 @@ package data
 import (
 	"io"
 	"io/ioutil"
+	"log"
+	"os"
+	"path"
 	"path/filepath"
+	"time"
 )
 
 type LocalRepo struct {
@@ -11,6 +15,11 @@ type LocalRepo struct {
 }
 
 func NewLocalRepo(dir string) MediaRepo {
+	log.Println("Creating directory " + dir)
+	err := os.MkdirAll(dir, os.ModePerm)
+	if err != nil {
+		log.Printf("Error creating directory %s, continuing", dir)
+	}
 	return LocalRepo{dir: dir}
 }
 
@@ -28,4 +37,9 @@ func (r LocalRepo) Store(fileReader io.Reader, _ string, name string, _ int64) (
 	}
 
 	return filepath.Base(tempImage.Name()), nil
+}
+
+func (r LocalRepo) GenerateUniqueName(fileName string) string {
+	ext := path.Ext(fileName)
+	return string(time.Now().UnixNano()) + ext
 }

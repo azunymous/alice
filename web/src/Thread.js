@@ -35,13 +35,20 @@ class Thread extends React.Component {
             }).catch(console.log);
     }
 
+    displayImage(post) {
+        if (process.env.REACT_APP_IMAGE_CONTEXT.startsWith("http")) {
+            return process.env.REACT_APP_IMAGE_CONTEXT + "/" + post.image
+        }
+        return process.env.PUBLIC_URL + process.env.REACT_APP_IMAGE_CONTEXT + post.image;
+    }
+
     displayThread(thread) {
         return (
             <div key={thread.post.no}>
                 <hr/>
                 <div className="thread">
                     <span className="image"><img alt={thread.post.filename}
-                                                 src={process.env.PUBLIC_URL + process.env.REACT_APP_IMAGE_CONTEXT + thread.post.image}/></span><span
+                                                 src={this.displayImage(thread.post)}/></span><span
                     className="threadHeader">{thread.subject} <span
                     className="postName">{thread.post.name}</span> {thread.post.timestamp} No. <Link
                     to={"/" + this.state.board + "/res/" + thread.post.no}>{thread.post.no}</Link></span>
@@ -73,7 +80,7 @@ class Thread extends React.Component {
 
     optionalImage(post) {
         if (post.image != null && post.image !== "") {
-            return <span className="image"><img src={process.env.PUBLIC_URL + "/images/" + post.image}
+            return <span className="image"><img src={this.displayImage(post)}
                                                 alt={post.filename}/></span>
         } else {
             return <span className="noImage"/>

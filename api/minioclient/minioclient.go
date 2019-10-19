@@ -2,9 +2,11 @@ package minioclient
 
 import (
 	"errors"
+	"github.com/alice-ws/alice/data"
 	"github.com/minio/minio-go/v6"
 	"io"
 	"log"
+	"path"
 	"time"
 )
 
@@ -17,9 +19,11 @@ func (m MinioClient) DefaultBucket() string {
 	return m.defaultBucket
 }
 
-func ConnectToMinioWithTimeout(addr, defaultBucket, accessKey, secretAccessKey string) (client MinioClient, err error) {
+func ConnectToMinioWithTimeout(addr, defaultBucket, accessKey, secretAccessKey string) (client data.MediaRepo, err error) {
+	const duration = 2 * time.Second
+
 	done := make(chan bool, 1)
-	returnClient := make(chan MinioClient, 1)
+	returnClient := make(chan data.MediaRepo, 1)
 	returnError := make(chan error, 1)
 	go func() {
 		minioClient, err := ConnectToMinio(addr, defaultBucket, accessKey, secretAccessKey)
@@ -31,12 +35,12 @@ func ConnectToMinioWithTimeout(addr, defaultBucket, accessKey, secretAccessKey s
 	select {
 	case <-done:
 		return <-returnClient, <-returnError
-	case <-time.After(10 * time.Second):
+	case <-time.After(duration):
 		return MinioClient{}, errors.New("minio client connectivity timeout after 10 seconds")
 	}
 }
 
-func ConnectToMinio(addr, defaultBucket, accessKey, secretAccessKey string) (client MinioClient, err error) {
+func ConnectToMinio(addr, defaultBucket, accessKey, secretAccessKey string) (client data.MediaRepo, err error) {
 	minioClient, err := minio.New(addr, accessKey, secretAccessKey, false)
 	if err != nil {
 		return MinioClient{}, err
@@ -44,7 +48,10 @@ func ConnectToMinio(addr, defaultBucket, accessKey, secretAccessKey string) (cli
 
 	mc := MinioClient{client: minioClient, defaultBucket: defaultBucket}
 	mc.createBucket(defaultBucket)
-	err = mc.client.SetBucketPolicy(defaultBucket, "download")
+	policy := ` {"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"AWS":["*"]},"Action":["s3:GetBucketLocation","s3:ListBucket"],"Resource":["arn:aws:s3:::images"]},{"Effect":"Allow","Principal":{"AWS":["*"]},"Action":["s3:GetObject"],"Resource":["arn:aws:s3:::images/*"]}]}`
+	err = mc.client.SetBucketPolicy(defaultBucket, policy)
+	setPolicy, _ := mc.client.GetBucketPolicy(defaultBucket)
+	log.Printf("Current %s policy: %v", defaultBucket, setPolicy)
 	if err != nil {
 		log.Printf("Error making default bucket %s available as download host: %v", defaultBucket, err)
 		return MinioClient{}, err
@@ -58,7 +65,12 @@ func (m MinioClient) Store(obj io.Reader, bucket, name string, size int64) (stri
 		return "", err
 	}
 
-	panic("implement me")
+	return bucket + "/" + name, nil
+}
+
+func (m MinioClient) GenerateUniqueName(fileName string) string {
+	ext := path.Ext(fileName)
+	return string(time.Now().UnixNano()) + ext
 }
 
 func (m MinioClient) createBucket(name string) {

@@ -2,7 +2,7 @@ TODO
 - Setup cluster with kops or other tooling for $10
 - Deploy to Kubernetes and use kustomize for resource files
 
-- Fix skaffold run issue where minio takes longer to be ready than alice api does so alice does not bother connecting
+- Fix skaffold run issue where minio takes longer to be ready than alice api does so alice does not bother connecting - can continuously check for connectivity and use it when it is available
 
 - Use solution of a list of string segments for formatting server and client side
 e.g
@@ -31,8 +31,5 @@ e.g
 
 -----
 
-Before running api + web locally:
-- Create images folder inside public directory
-
 Before deploying:
-- Create env.*.local files
+- Create env.*.local files with secrets following template

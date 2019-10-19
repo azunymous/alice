@@ -9,6 +9,7 @@ resources:
 
 patchesStrategicMerge:
   - statefulset_env.yaml
+  - statefulset_probes.yaml
 secretGenerator:
   - name: minio-access
     envs:

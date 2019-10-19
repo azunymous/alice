@@ -5,5 +5,6 @@ import (
 )
 
 type MediaRepo interface {
-	Store(io.Reader, string, string, int64) (string, error)
+	Store(file io.Reader, group string, ID string, size int64) (URI string, err error)
+	GenerateUniqueName(fileName string) string
 }
