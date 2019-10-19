@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"path"
+	"strconv"
 	"time"
 )
 
@@ -19,9 +20,7 @@ func (m MinioClient) DefaultBucket() string {
 	return m.defaultBucket
 }
 
-func ConnectToMinioWithTimeout(addr, defaultBucket, accessKey, secretAccessKey string) (client data.MediaRepo, err error) {
-	const duration = 2 * time.Second
-
+func ConnectToMinioWithTimeout(addr, defaultBucket, accessKey, secretAccessKey string, timeout time.Duration) (client data.MediaRepo, err error) {
 	done := make(chan bool, 1)
 	returnClient := make(chan data.MediaRepo, 1)
 	returnError := make(chan error, 1)
@@ -35,8 +34,8 @@ func ConnectToMinioWithTimeout(addr, defaultBucket, accessKey, secretAccessKey s
 	select {
 	case <-done:
 		return <-returnClient, <-returnError
-	case <-time.After(duration):
-		return MinioClient{}, errors.New("minio client connectivity timeout after 10 seconds")
+	case <-time.After(timeout):
+		return MinioClient{}, errors.New("minio client connectivity timeout after " + timeout.String() + " seconds")
 	}
 }
 
@@ -65,12 +64,13 @@ func (m MinioClient) Store(obj io.Reader, bucket, name string, size int64) (stri
 		return "", err
 	}
 
+	log.Printf("Storing image %s in bucket %s", name, bucket)
 	return bucket + "/" + name, nil
 }
 
 func (m MinioClient) GenerateUniqueName(fileName string) string {
 	ext := path.Ext(fileName)
-	return string(time.Now().UnixNano()) + ext
+	return strconv.FormatInt(time.Now().UnixNano(), 10) + ext
 }
 
 func (m MinioClient) createBucket(name string) {

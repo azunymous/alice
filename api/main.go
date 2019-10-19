@@ -6,8 +6,7 @@ import (
 	"fmt"
 	"github.com/alice-ws/alice/board"
 	"github.com/alice-ws/alice/data"
-	"github.com/alice-ws/alice/minioclient"
-	"github.com/alice-ws/alice/redisclient"
+	"github.com/alice-ws/alice/dependencies"
 	"github.com/alice-ws/alice/users"
 	"github.com/julienschmidt/httprouter"
 	"github.com/rs/cors"
@@ -18,11 +17,11 @@ import (
 	"path/filepath"
 )
 
+var dependencyManagement dependencies.Dependencies
+
 var userStore *users.Store
 var threadStore *board.Store
 var mediaRepo data.MediaRepo
-
-const imageGroup = "images"
 
 type statusResponse struct {
 	Status string `json:"status"`
@@ -55,8 +54,11 @@ const (
 
 func configuration() {
 	viper.SetDefault("server.port", ":8080")
+	viper.SetDefault("server.fallbacks.markUnhealthy", false)
 	viper.SetDefault("redis.addr", "localhost:6379")
+	viper.SetDefault("redis.timeout", "2s")
 	viper.SetDefault("minio.addr", "localhost:9000")
+	viper.SetDefault("minio.timeout", "2s")
 	_ = viper.BindEnv("minio.access", "MINIO_ACCESS_KEY")
 	_ = viper.BindEnv("minio.secret", "MINIO_SECRET_KEY")
 	viper.SetDefault("minio.access", "minio")
@@ -86,7 +88,7 @@ func homePageHandler(w http.ResponseWriter, _ *http.Request, _ httprouter.Params
 	_, _ = fmt.Fprintf(w, `{"V" : "1", "data" : "ALICE API"}`)
 }
 
-func healthcheckHandler(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
+func liveHandler(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
 	addHeaders(w)
 	w.WriteHeader(http.StatusOK)
 	status := statusResponse{
@@ -94,6 +96,19 @@ func healthcheckHandler(w http.ResponseWriter, _ *http.Request, _ httprouter.Par
 	}
 
 	_ = json.NewEncoder(w).Encode(status)
+}
+
+func readyHandler(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
+	dependencyManagement.MarkFallbacksUnhealthy(viper.GetBool("server.fallbacks.markUnhealthy"))
+	dependenciesList := dependencyManagement.String()
+
+	addHeaders(w)
+	if dependencyManagement.Healthy() {
+		w.WriteHeader(http.StatusOK)
+	} else {
+		w.WriteHeader(http.StatusFailedDependency)
+	}
+	_, _ = fmt.Fprintf(w, dependenciesList)
 }
 
 func anonRegisterHandler(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
@@ -222,7 +237,7 @@ func addThreadHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Param
 		return
 	}
 
-	URI, err := mediaRepo.Store(image, imageGroup, mediaRepo.GenerateUniqueName(header.Filename), header.Size)
+	URI, err := mediaRepo.Store(image, dependencyManagement.ImageGroup(), mediaRepo.GenerateUniqueName(header.Filename), header.Size)
 
 	post.Filename = header.Filename
 
@@ -302,7 +317,7 @@ func addPostHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params)
 			return
 		}
 
-		URI, err := mediaRepo.Store(image, imageGroup, header.Filename, header.Size)
+		URI, err := mediaRepo.Store(image, dependencyManagement.ImageGroup(), mediaRepo.GenerateUniqueName(header.Filename), header.Size)
 
 		post.Filename = header.Filename
 
@@ -341,7 +356,7 @@ func addHeaders(w http.ResponseWriter) {
 func handler() http.Handler {
 	router := httprouter.New()
 	router.GET("/", homePageHandler)
-	router.GET("/healthcheck", healthcheckHandler)
+	router.GET("/ready", readyHandler)
 	router.POST("/register", registerHandler)
 	router.POST("/anonregister", anonRegisterHandler)
 	router.POST("/login", loginHandler)
@@ -355,35 +370,31 @@ func handler() http.Handler {
 }
 
 func main() {
+	go serveLiveness()
+	dependencyManagement = dependencies.Setup()
 	port := setup()
 	log.Fatal(http.ListenAndServe(port, handler()))
+}
+
+func serveLiveness() {
+	router := httprouter.New()
+	router.GET("/live", liveHandler)
+	log.Fatal(http.ListenAndServe(":8081", router))
 }
 
 func setup() string {
 	configuration()
 	port := viper.GetString("server.port")
-	redisAddr := viper.GetString("redis.addr")
-	minioAddr := viper.GetString("minio.addr")
 	tokenKey := []byte(viper.GetString("jwt.key"))
-	rc, redisErr := redisclient.ConnectToRedis(redisAddr)
-	if redisErr == nil {
-		log.Printf("Connected to redis on " + redisAddr)
-		userStore = users.NewStore(rc, tokenKey)
-		threadStore = board.NewStore(rc)
-	} else {
-		log.Printf("Cannot connect to redis " + redisErr.Error() + " - falling back to in memory database")
-		userStore = users.NewStore(data.NewMemoryDB(), tokenKey)
-		threadStore = board.NewStore(data.NewMemoryDB())
-	}
 
-	mc, minioErr := minioclient.ConnectToMinioWithTimeout(minioAddr, imageGroup, viper.GetString("minio.access"), viper.GetString("minio.secret"))
-	if minioErr == nil {
-		log.Printf("Connected to minio on " + minioAddr)
-		mediaRepo = mc
-	} else {
-		log.Printf("Cannot connect to minio " + minioErr.Error() + " - falling back to local filesystem")
-		mediaRepo = data.NewLocalRepo(viper.GetString("board.images.dir"))
-	}
+	mc := dependencyManagement.GetImageRepository()
+	mediaRepo = mc
+
+	db := dependencyManagement.GetDB()
+
+	userStore = users.NewStore(db, tokenKey)
+	threadStore = board.NewStore("/test/", db, db)
+
 	log.Printf("Starting on " + port)
 	return port
 }

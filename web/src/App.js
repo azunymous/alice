@@ -10,7 +10,7 @@ function App() {
     return (
         <div className="App">
             <header className="App-header">
-                <h1>alice.ws</h1>
+                <h1>igiari.net</h1>
             </header>
             <div className="outer">
                 <Router>

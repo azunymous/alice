@@ -10,7 +10,7 @@ import (
 
 func TestStore_AddThread(t *testing.T) {
 	type fields struct {
-		db    data.DB
+		db    data.KeyValueDB
 		index uint64
 	}
 	type args struct {

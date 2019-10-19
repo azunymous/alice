@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis
+spec:
+  serviceName: redis
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    spec:
+      containers:
+        - name: redis
+          image: redis:5.0.6-alpine
+          command:
+            - redis-server
+            - "/config/redis.conf"
+          ports:
+            - containerPort: 6379
+          resources:
+            limits:
+              cpu: "0.2"
+          volumeMounts:
+            - mountPath: /data
+              name: redis-pvc
+            - mountPath: /config
+              name: config
+      volumes:
+        - name: config
+          configMap:
+            name: redis-config
+  volumeClaimTemplates:
+    - metadata:
+        name: redis-pvc
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 1Gi

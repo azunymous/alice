@@ -4,18 +4,24 @@ TODO
 
 - Fix skaffold run issue where minio takes longer to be ready than alice api does so alice does not bother connecting - can continuously check for connectivity and use it when it is available
 
+- Add content type and other minio metadata
+
 - Use solution of a list of string segments for formatting server and client side
 e.g
 {["bold, quote"], ">what"}, {["newline"],  ""}, {[""], "more"}
 
+
+- Clean up main.go and remove code duplication during retries
+
 - Add full black box tests for addThread and addPost with image upload
 
-- Split threads and posts in board component into subcomponents, using props to pass in the objects
 - Replace thread array with thread store to keep list of all threads or find better data structure
 - Trim thread/all to remove unnecessary replies
 - Add bumping
 - Add pagination
 - Rethink data structure for threads/posts
+
+- Add thread/post limits and DB deletion of threads and images after they die.
 
 - Improve/create tooling for comparing structs whiling ignoring some or find better way of stopping time
 

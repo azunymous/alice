@@ -192,7 +192,7 @@ func TestPost_update(t *testing.T) {
 
 func TestStore_AddPost(t *testing.T) {
 	type fields struct {
-		db    data.DB
+		db    data.KeyValueDB
 		count uint64
 	}
 	type args struct {

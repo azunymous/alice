@@ -10,7 +10,7 @@ import (
 
 func TestNewStore(t *testing.T) {
 	type args struct {
-		db  data.DB
+		db  data.KeyValueDB
 		key []byte
 	}
 	tests := []struct {
@@ -184,7 +184,7 @@ func (failingDB) Remove(string) error {
 
 func TestStore_AnonymousRegister(t *testing.T) {
 	type fields struct {
-		db  data.DB
+		db  data.KeyValueDB
 		key []byte
 	}
 	tests := []struct {
@@ -224,7 +224,7 @@ func TestStore_AnonymousRegister(t *testing.T) {
 
 func TestStore_Register(t *testing.T) {
 	type fields struct {
-		db  data.DB
+		db  data.KeyValueDB
 		key []byte
 	}
 	type args struct {
@@ -366,7 +366,7 @@ func emptyTokenWithNoUserAdded(store Store, username, token string) bool {
 
 func TestStore_registerInDatabase(t *testing.T) {
 	type fields struct {
-		db  data.DB
+		db  data.KeyValueDB
 		key []byte
 	}
 	type args struct {
@@ -427,7 +427,7 @@ func TestStore_registerInDatabase(t *testing.T) {
 
 func TestStore_getFromDatabase(t *testing.T) {
 	type fields struct {
-		db  data.DB
+		db  data.KeyValueDB
 		key []byte
 	}
 	type args struct {
@@ -499,7 +499,7 @@ func TestStore_getFromDatabase(t *testing.T) {
 	}
 }
 
-func mapStoreWithUser(username, email, password string) data.DB {
+func mapStoreWithUser(username, email, password string) data.KeyValueDB {
 	db := data.NewMemoryDB()
 	_ = db.Set(&User{Username: username, email: email, password: password})
 	return db
@@ -507,7 +507,7 @@ func mapStoreWithUser(username, email, password string) data.DB {
 
 func TestStore_Login(t *testing.T) {
 	type fields struct {
-		db  data.DB
+		db  data.KeyValueDB
 		key []byte
 	}
 	type args struct {
@@ -599,7 +599,7 @@ func hashPasswordIgnoringError(password string) string {
 
 func TestStore_Verify(t *testing.T) {
 	type fields struct {
-		db  data.DB
+		db  data.KeyValueDB
 		key []byte
 	}
 	type args struct {

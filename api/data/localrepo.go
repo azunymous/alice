@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"time"
 )
 
@@ -41,5 +42,5 @@ func (r LocalRepo) Store(fileReader io.Reader, _ string, name string, _ int64) (
 
 func (r LocalRepo) GenerateUniqueName(fileName string) string {
 	ext := path.Ext(fileName)
-	return string(time.Now().UnixNano()) + ext
+	return strconv.FormatInt(time.Now().UnixNano(), 10) + ext
 }

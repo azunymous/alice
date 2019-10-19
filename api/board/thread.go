@@ -9,20 +9,23 @@ import (
 )
 
 type Store struct {
-	db      data.DB
+	ID      string
+	db      data.KeyValueDB
 	count   uint64
-	threads []uint64
+	threads data.OrderedDB
 }
 
-func NewStore(db data.DB) *Store {
+func NewStore(ID string, db data.KeyValueDB, threads data.OrderedDB) *Store {
 	if db == nil {
 		db = data.NewMemoryDB()
+		threads = data.NewMemoryDB()
 	}
 
 	return &Store{
+		ID:      ID,
 		db:      db,
 		count:   0,
-		threads: []uint64{},
+		threads: threads,
 	}
 }
 
@@ -59,15 +62,15 @@ func (store *Store) AddThread(thread Thread) (uint64, error) {
 
 	thread.Post = thread.update(store.count)
 	err := store.db.Set(thread)
-	store.threads = append(store.threads, thread.Post.No)
+	err = store.threads.SetOrdered(data.NewKeyValuePair(store.ID, strconv.FormatUint(thread.No, 10)), int(thread.Timestamp.Unix()))
 	return thread.Post.No, err
 }
 
 func (store *Store) GetAllThreads() ([]Thread, error) {
 	var threads []Thread
 
-	for _, t := range store.threads {
-		threadString, err := store.db.Get(strconv.FormatUint(t, 10))
+	for _, t := range store.threads.GetAllOrderedByScore(store.ID) {
+		threadString, err := store.db.Get(t)
 		thread, err := newThreadFrom(threadString)
 		if err != nil {
 			return []Thread{}, errors.New("error getting threads")

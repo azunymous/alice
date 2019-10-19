@@ -11,6 +11,16 @@ spec:
           volumeMounts:
             - name: config-volume
               mountPath: /config/
+          livenessProbe:
+            httpGet:
+              path: /live
+              port: 8081
+            initialDelaySeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8080
+            initialDelaySeconds: 30
       volumes:
         - name: config-volume
           configMap:

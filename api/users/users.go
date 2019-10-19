@@ -13,11 +13,11 @@ import (
 )
 
 type Store struct {
-	db  data.DB
+	db  data.KeyValueDB
 	key []byte
 }
 
-func NewStore(db data.DB, key []byte) *Store {
+func NewStore(db data.KeyValueDB, key []byte) *Store {
 	if db == nil {
 		db = data.NewMemoryDB()
 	}

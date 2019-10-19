@@ -19,5 +19,9 @@ spec:
               value: "dev"
           livenessProbe:
             httpGet:
-              path: /healthcheck
+              path: /live
+              port: 8081
+          readinessProbe:
+            httpGet:
+              path: /ready
               port: 8080
