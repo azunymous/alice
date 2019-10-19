@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/alice-ws/alice/board"
 	"github.com/alice-ws/alice/data"
+	"github.com/alice-ws/alice/minioclient"
 	"github.com/alice-ws/alice/redisclient"
 	"github.com/alice-ws/alice/users"
 	"github.com/julienschmidt/httprouter"
@@ -20,6 +21,7 @@ import (
 
 var userStore *users.Store
 var threadStore *board.Store
+var mediaRepo data.MediaRepo
 
 type statusResponse struct {
 	Status string `json:"status"`
@@ -53,11 +55,17 @@ const (
 func configuration() {
 	viper.SetDefault("server.port", ":8080")
 	viper.SetDefault("redis.addr", "localhost:6379")
+	viper.SetDefault("minio.addr", "localhost:9000")
+	_ = viper.BindEnv("minio.access", "MINIO_ACCESS_KEY")
+	_ = viper.BindEnv("minio.secret", "MINIO_SECRET_KEY")
+	viper.SetDefault("minio.access", "minio")
+	viper.SetDefault("minio.secret", "insecure")
 	viper.SetDefault("jwt.key", "KEYGOESHERE")
 	viper.SetDefault("users", map[string]string{"alice": "admin"})
 	//TODO deal with below
 	dir, _ := os.Getwd()
 	viper.SetDefault("board.images.dir", filepath.Join(filepath.Dir(dir), "/web/public/images"))
+
 	viper.SetConfigName("config") // name of config file (without extension)
 	viper.AddConfigPath(".")      // optionally look for config in the working directory
 	viper.AddConfigPath("/config/")
@@ -366,6 +374,7 @@ func setup() string {
 	configuration()
 	port := viper.GetString("server.port")
 	redisAddr := viper.GetString("redis.addr")
+	minioAddr := viper.GetString("minio.addr")
 	tokenKey := []byte(viper.GetString("jwt.key"))
 	rc, redisErr := redisclient.ConnectToRedis(redisAddr)
 	if redisErr == nil {
@@ -376,6 +385,16 @@ func setup() string {
 		log.Printf("Cannot connect to redis " + redisErr.Error() + " - falling back to in memory database")
 		userStore = users.NewStore(data.NewMemoryDB(), tokenKey)
 		threadStore = board.NewStore(data.NewMemoryDB())
+	}
+
+	const defaultBucket = "images"
+	mc, minioErr := minioclient.ConnectToMinioWithTimeout(minioAddr, defaultBucket, viper.GetString("minio.access"), viper.GetString("minio.secret"))
+	if minioErr == nil {
+		log.Printf("Connected to minio on " + minioAddr)
+		mediaRepo = mc
+	} else {
+		log.Printf("Cannot connect to minio " + minioErr.Error() + " - falling back to local filesystem")
+		mediaRepo = data.NewLocalRepo(viper.GetString("board.images.dir"))
 	}
 	log.Printf("Starting on " + port)
 	return port

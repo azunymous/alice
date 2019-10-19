@@ -5,21 +5,42 @@ import (
 	"strings"
 )
 
-var linkedQuoteFirstLine = regexp.MustCompile(`^>>(\d+)[ \t]*`)
-var textQuoteFirstLine = regexp.MustCompile(`^>([^>].*)`)
+type format struct {
+	regex *regexp.Regexp
+	class string
+}
 
-const (
-	linkedQuote = `<span class="alc-linked-quote">>$1</span>`
-	textQuote   = `<span class="alc-text-quote">$1</span>`
-)
-
-func (p Post) parse() string {
-	postContent := p.Comment
-	var parsedLines []string
-	for _, line := range strings.Split(postContent, "\n") {
-		line = linkedQuoteFirstLine.ReplaceAllString(line, linkedQuote)
-		line = textQuoteFirstLine.ReplaceAllString(line, textQuote)
-		parsedLines = append(parsedLines, line)
+func getFormats() []format {
+	return []format{
+		{
+			regex: regexp.MustCompile(`^>([^>].*)`),
+			class: "quote",
+		},
+		{
+			regex: regexp.MustCompile(`^>>(\d+)[ \t]*`),
+			class: "noQuote",
+		},
 	}
-	return strings.Join(parsedLines, "<br>")
+}
+
+// One line with either a format or not
+type Segment struct {
+	format  []string
+	segment string
+}
+
+func (p Post) parse() []Segment {
+	postContent := p.Comment
+	var segments []Segment
+	for _, line := range strings.Split(postContent, "\n") {
+		addingSegment := Segment{[]string{}, line}
+		for _, f := range getFormats() {
+			find := f.regex.FindString(line)
+			if find != "" {
+				addingSegment = Segment{[]string{f.class}, line}
+			}
+		}
+		segments = append(segments, addingSegment)
+	}
+	return segments
 }

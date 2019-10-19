@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: minio
+spec:
+  serviceName: minio
+  replicas: 1
+  selector:
+    matchLabels:
+      app: minio
+  template:
+    spec:
+      containers:
+        - name: minio
+          image: minio/minio
+          args:
+            - server
+            - /data
+          env:
+            - name: MINIO_ACCESS_KEY
+              value: "minio"
+            - name: MINIO_SECRET_KEY
+              value: "insecure"
+          ports:
+            - containerPort: 9000
+          volumeMounts:
+            - mountPath: /data
+              name: minio-pvc
+          readinessProbe:
+            httpGet:
+              path: /minio/health/ready
+              port: 9000
+            initialDelaySeconds: 120
+            periodSeconds: 20
+          livenessProbe:
+            httpGet:
+              path: /minio/health/live
+              port: 9000
+            initialDelaySeconds: 120
+            periodSeconds: 20
+  volumeClaimTemplates:
+    - metadata:
+        name: minio-pvc
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 10Gi

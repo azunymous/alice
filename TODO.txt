@@ -1,9 +1,15 @@
 TODO
+- Setup cluster with kops or other tooling for $10
 - Deploy to Kubernetes and use kustomize for resource files
+
+- Fix skaffold run issue where minio takes longer to be ready than alice api does so alice does not bother connecting
+
+- Use solution of a list of string segments for formatting server and client side
+e.g
+{["bold, quote"], ">what"}, {["newline"],  ""}, {[""], "more"}
 
 - Add full black box tests for addThread and addPost with image upload
 
-- Think of better solution for formatting server and client side
 - Split threads and posts in board component into subcomponents, using props to pass in the objects
 - Replace thread array with thread store to keep list of all threads or find better data structure
 - Trim thread/all to remove unnecessary replies
@@ -21,3 +27,12 @@ TODO
 
 
 - Set up spec for file structure
+
+
+-----
+
+Before running api + web locally:
+- Create images folder inside public directory
+
+Before deploying:
+- Create env.*.local files

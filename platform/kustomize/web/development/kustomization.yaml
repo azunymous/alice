@@ -1,0 +1,10 @@
+namespace: alice-web
+commonLabels:
+  variant: development
+commonAnnotations:
+  note: This is a development environment
+resources:
+  - ../base
+patchesStrategicMerge:
+  - deployment_replicas.yaml
+  - deployment_spec.yaml

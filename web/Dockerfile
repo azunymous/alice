@@ -1,6 +1,11 @@
-FROM node:12
+FROM node:12 as build-stage
 COPY . /
-RUN npm run build
+RUN npm install && npm run build
+COPY ./nginx/nginx.conf /nginx.conf
 
-FROM httpd:2.4
-COPY --from=0 /build  /usr/local/apache2/htdocs/
+
+FROM nginx:1.17.4-alpine
+COPY --from=build-stage /nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build-stage /build /usr/share/nginx/html
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]

@@ -1,0 +1,4 @@
+resources:
+  - ./api/development
+  - ./web/development
+  - ./minio/development

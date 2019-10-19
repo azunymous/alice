@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: alice-web
+spec:
+  selector:
+    app: alice-web
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80

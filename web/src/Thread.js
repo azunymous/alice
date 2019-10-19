@@ -41,7 +41,7 @@ class Thread extends React.Component {
                 <hr/>
                 <div className="thread">
                     <span className="image"><img alt={thread.post.filename}
-                                                 src={process.env.PUBLIC_URL + "/images/" + thread.post.image}/></span><span
+                                                 src={process.env.PUBLIC_URL + process.env.REACT_APP_IMAGE_CONTEXT + thread.post.image}/></span><span
                     className="threadHeader">{thread.subject} <span
                     className="postName">{thread.post.name}</span> {thread.post.timestamp} No. <Link
                     to={"/" + this.state.board + "/res/" + thread.post.no}>{thread.post.no}</Link></span>

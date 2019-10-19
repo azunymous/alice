@@ -9,15 +9,16 @@ import (
 )
 
 type Post struct {
-	No        uint64    `json:"no"`
-	Timestamp time.Time `json:"timestamp"`
-	Name      string    `json:"name"`
-	Email     string    `json:"email"`
-	Comment   string    `json:"comment"`
-	Image     string    `json:"image"`
-	Filename  string    `json:"filename"`
-	Meta      string    `json:"meta"`
-	QuotedBy  []uint64  `json:"quoted_by"`
+	No              uint64    `json:"no"`
+	Timestamp       time.Time `json:"timestamp"`
+	Name            string    `json:"name"`
+	Email           string    `json:"email"`
+	Comment         string    `json:"comment"`
+	CommentSegments []Segment `json:"comment_segments"`
+	Image           string    `json:"image"`
+	Filename        string    `json:"filename"`
+	Meta            string    `json:"meta"`
+	QuotedBy        []uint64  `json:"quoted_by"`
 }
 
 func (p Post) Key() string {
@@ -30,15 +31,16 @@ func (p Post) getPostNo() uint64 {
 
 func NewPost(newPostNo uint64, time time.Time, name, email, comment string, image string, filename, meta string) Post {
 	return Post{
-		No:        newPostNo,
-		Timestamp: time,
-		Name:      name,
-		Email:     email,
-		Comment:   comment,
-		Image:     image,
-		Filename:  filename,
-		Meta:      meta,
-		QuotedBy:  make([]uint64, 0),
+		No:              newPostNo,
+		Timestamp:       time,
+		Name:            name,
+		Email:           email,
+		Comment:         comment,
+		CommentSegments: make([]Segment, 0),
+		Image:           image,
+		Filename:        filename,
+		Meta:            meta,
+		QuotedBy:        make([]uint64, 0),
 	}
 }
 
@@ -90,6 +92,7 @@ func (p Post) update(postCount uint64) Post {
 
 	p.Timestamp = time.Now()
 
+	p.CommentSegments = p.parse()
 	return p
 }
 

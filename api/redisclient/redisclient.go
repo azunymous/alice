@@ -6,11 +6,11 @@ import (
 	"github.com/go-redis/redis"
 )
 
-type Store struct {
+type RedisClient struct {
 	client *redis.Client
 }
 
-func ConnectToRedis(addr string) (*Store, error) {
+func ConnectToRedis(addr string) (*RedisClient, error) {
 	client := redis.NewClient(&redis.Options{
 		Addr:     addr,
 		Password: "", // no password set
@@ -21,22 +21,22 @@ func ConnectToRedis(addr string) (*Store, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Store{client}, nil
+	return &RedisClient{client}, nil
 }
 
-func (s *Store) Ping() bool {
+func (s *RedisClient) Ping() bool {
 	if err := s.client.Ping().Err(); err != nil {
 		return false
 	}
 	return true
 }
 
-func (s *Store) Set(kv data.KeyValue) error {
+func (s *RedisClient) Set(kv data.KeyValue) error {
 	_, err := s.client.Set(kv.Key(), kv.String(), 0).Result()
 	return err
 }
 
-func (s *Store) Get(key string) (string, error) {
+func (s *RedisClient) Get(key string) (string, error) {
 	result, getErr := s.client.Get(key).Result()
 	if getErr != nil {
 		return "", errors.New("error getting user " + getErr.Error())
@@ -44,7 +44,7 @@ func (s *Store) Get(key string) (string, error) {
 	return result, nil
 }
 
-func (s *Store) Remove(key string) error {
+func (s *RedisClient) Remove(key string) error {
 	err := s.client.Del(key).Err()
 	return err
 }

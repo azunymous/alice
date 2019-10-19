@@ -1,9 +1,0 @@
-nameSuffix: -development
-commonLabels:
-  variant: development
-commonAnnotations:
-  note: This is a development environment
-bases:
-  - ../../base
-patchesStrategicMerge:
-  - deployment.yaml

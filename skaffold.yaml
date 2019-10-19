@@ -1,0 +1,30 @@
+apiVersion: skaffold/v1beta16
+kind: Config
+metadata:
+  name: alice
+build:
+  artifacts:
+    - image: gcr.io/alice-ws/test/alice
+      context: api
+    - image: gcr.io/alice-ws/test/alice-web
+      context: web
+deploy:
+  kustomize:
+    path: "./platform/kustomize"
+profiles:
+  - name: api development
+    build:
+      artifacts:
+        - image: gcr.io/alice-ws/test/alice
+          context: api
+    deploy:
+      kustomize:
+        path: "./platform/kustomize/api/cd/development"
+  - name: web development
+    build:
+      artifacts:
+        - image: gcr.io/alice-ws/test/alice-web
+          context: web
+    deploy:
+      kustomize:
+        path: "./platform/kustomize/web/cd/development"

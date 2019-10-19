@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alice
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alice
+  template:
+    spec:
+      containers:
+        - name: alice
+          image: gcr.io/alice-ws/build/alice:0.0.1
+          ports:
+            - containerPort: 8080
+          env:
+            - name: environment
+              value: "dev"
+          livenessProbe:
+            httpGet:
+              path: /healthcheck
+              port: 8080
