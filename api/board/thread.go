@@ -117,7 +117,6 @@ func (store *Store) GetThread(no string) (Thread, error) {
 	return newThreadFrom(threadString)
 }
 
-// TODO validate and set post no
 func (store *Store) AddPost(threadNo string, post Post) (uint64, error) {
 	thread, err := store.GetThread(threadNo)
 
@@ -133,6 +132,7 @@ func (store *Store) AddPost(threadNo string, post Post) (uint64, error) {
 		thread = transformation(thread)
 	}
 	err = store.db.Set(thread)
+	err = store.threads.SetOrdered(data.NewKeyValuePair(store.ID, strconv.FormatUint(thread.No, 10)), int(post.Timestamp.Unix()))
 	return post.No, err
 }
 

@@ -4,6 +4,8 @@ import {Link} from "react-router-dom";
 import './Board.css';
 import './Hover.css';
 
+import objection from './objection.gif'
+
 
 class Thread extends React.Component {
     constructor(props) {
@@ -52,7 +54,8 @@ class Thread extends React.Component {
                                                  src={this.displayImage(thread.post)}/></span><span
                     className="threadHeader">{thread.subject} <span
                     className="postName">{thread.post.name}</span> {thread.post.timestamp} No. <Link
-                    to={"/" + this.state.board + "/res/" + thread.post.no}>{thread.post.no}</Link> <span className="quotedBy">{this.quotedBy(thread.post, thread)}</span></span>
+                    to={"/" + this.state.board + "/res/" + thread.post.no}>{thread.post.no}</Link> <span
+                    className="quotedBy">{this.quotedBy(thread.post, thread)}</span></span>
 
                     <div><span className="content">{this.displayComment(thread.post)}</span></div>
                 </div>
@@ -74,7 +77,7 @@ class Thread extends React.Component {
         })
     }
 
-    displayPost(post, thread, hover=false) {
+    displayPost(post, thread, hover = false) {
         return <div key={post.no} className="post">
             {this.optionalImage(post)}
             <span className="postHeader"><span
@@ -89,25 +92,42 @@ class Thread extends React.Component {
             return post.comment;
         }
 
-        function formatAsClasses(segment) {
-            if (segment === null || segment.format === null) {
-                return "";
-            }
-            return segment.map((format) => {
-                return format + " "
-            })
-        }
 
         return post.comment_segments.map((segment, i) => {
-            return (
-                <div className={formatAsClasses(segment.format)} key={i}>{segment.segment}<br/></div>
-            )
+            return this.displaySegment(segment, i)
         })
     }
 
 
-    quotedBy(post, thread, hover=false) {
-        const Hover = ({ onHover, children }) => (
+    displaySegment(segment, i) {
+        switch (segment.format[0]) {
+            case "objection":
+                return (
+                    <div className={segment.format}><img src={objection} alt="Objection!"/></div>
+                );
+            case "roll":
+                return (
+                    <div className="roll">{Math.random() % 6}</div>
+                );
+            default:
+                return (
+                    <div className={this.formatAsClasses(segment.format)} key={i}>{segment.segment}<br/></div>
+                );
+        }
+    }
+
+    formatAsClasses(segment) {
+        if (segment === null || segment.format === null) {
+            return "";
+        }
+        return segment.map((format) => {
+            return format + " "
+        })
+    }
+
+
+    quotedBy(post, thread, hover = false) {
+        const Hover = ({onHover, children}) => (
             <span className="hover">
                 <span className="hover__no-hover">{children}</span>
                 <span className="hover__hover">{onHover}</span>

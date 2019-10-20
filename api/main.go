@@ -34,12 +34,6 @@ type userResponse struct {
 	Token    string `json:"token"`
 }
 
-type boardRequest struct {
-	ThreadNo string     `json:"thread_no"`
-	Post     board.Post `json:"post"`
-	Type     string     `json:"type"`
-}
-
 type boardResponse struct {
 	Status string       `json:"status"`
 	No     string       `json:"no"`
@@ -65,7 +59,7 @@ func configuration() {
 	viper.SetDefault("minio.secret", "insecure")
 	viper.SetDefault("jwt.key", "KEYGOESHERE")
 	viper.SetDefault("users", map[string]string{"alice": "admin"})
-	//TODO deal with below
+
 	dir, _ := os.Getwd()
 	viper.SetDefault("board.images.dir", filepath.Join(filepath.Dir(dir), "/web/public/images"))
 

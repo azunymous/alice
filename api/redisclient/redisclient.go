@@ -20,7 +20,7 @@ func (r *RedisClient) SetOrdered(kv data.KeyValue, score int) error {
 }
 
 func (r *RedisClient) GetAllOrderedByScore(key string) []string {
-	slice := r.client.ZRangeByScore(key, redis.ZRangeBy{
+	slice := r.client.ZRevRangeByScore(key, redis.ZRangeBy{
 		Min: "-inf",
 		Max: "+inf",
 	})

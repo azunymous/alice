@@ -48,13 +48,8 @@ func ConnectToMinio(addr, defaultBucket, accessKey, secretAccessKey string) (cli
 	}
 
 	mc := MinioClient{client: minioClient, defaultBucket: defaultBucket}
-	mc.createBucket(defaultBucket)
-	policy := ` {"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"AWS":["*"]},"Action":["s3:GetBucketLocation","s3:ListBucket"],"Resource":["arn:aws:s3:::images"]},{"Effect":"Allow","Principal":{"AWS":["*"]},"Action":["s3:GetObject"],"Resource":["arn:aws:s3:::images/*"]}]}`
-	err = mc.client.SetBucketPolicy(defaultBucket, policy)
-	setPolicy, _ := mc.client.GetBucketPolicy(defaultBucket)
-	log.Printf("Current %s policy: %v", defaultBucket, setPolicy)
+	err = mc.createBucket(defaultBucket)
 	if err != nil {
-		log.Printf("Error making default bucket %s available as download host: %v", defaultBucket, err)
 		return MinioClient{}, err
 	}
 	return mc, nil
@@ -76,10 +71,10 @@ func (m MinioClient) GenerateUniqueName(fileName string) string {
 	return strconv.FormatInt(time.Now().UnixNano(), 10) + ext
 }
 
-func (m MinioClient) createBucket(name string) {
+func (m MinioClient) createBucket(name string) error {
 	exists, _ := m.client.BucketExists(name)
 	if exists {
-		return
+		return nil
 	}
 	err := m.client.MakeBucket(name, "")
 	if err != nil {
@@ -87,4 +82,14 @@ func (m MinioClient) createBucket(name string) {
 	} else {
 		log.Printf("Successfully created %s\n", name)
 	}
+
+	policy := ` {"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"AWS":["*"]},"Action":["s3:GetBucketLocation","s3:ListBucket"],"Resource":["arn:aws:s3:::images"]},{"Effect":"Allow","Principal":{"AWS":["*"]},"Action":["s3:GetObject"],"Resource":["arn:aws:s3:::images/*"]}]}`
+	err = m.client.SetBucketPolicy(m.defaultBucket, policy)
+	setPolicy, _ := m.client.GetBucketPolicy(m.defaultBucket)
+	log.Printf("Current %s policy: %v", m.defaultBucket, setPolicy)
+	if err != nil {
+		log.Printf("Error making default bucket %s available as download host: %v", m.defaultBucket, err)
+		return err
+	}
+	return nil
 }

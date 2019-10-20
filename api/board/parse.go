@@ -17,13 +17,20 @@ type Transform func(t Thread) Thread
 func getFormats() []format {
 	return []format{
 		{
-			regex: regexp.MustCompile(`^>([^>].*)`),
-			class: "quote",
+			regex:                  regexp.MustCompile(`^>([^>].*)`),
+			class:                  "quote",
+			transformationProvider: nil,
 		},
 		{
 			regex:                  regexp.MustCompile(`^>>(\d+)[ \t]*`),
 			class:                  "noQuote",
 			transformationProvider: addPostReplyToQuotedPost,
+		},
+
+		{
+			regex:                  regexp.MustCompile(`^[ \t]*Objection![ \t]*`),
+			class:                  "objection",
+			transformationProvider: nil, // FOR NOW!
 		},
 	}
 }

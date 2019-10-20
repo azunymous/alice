@@ -166,6 +166,10 @@ func TestUser_String(t *testing.T) {
 
 type failingDB struct{}
 
+func (db failingDB) Increment(string) (int64, error) {
+	return 0, errors.New("cannot connect to DB")
+}
+
 func (failingDB) Ping() bool {
 	return false
 }
@@ -671,7 +675,6 @@ func TestStore_Verify(t *testing.T) {
 	}
 }
 
-// TODO copy implementation here and use custom time argument for testing expiration as well
 func generateTokenIgnoringError(username, key string) string {
 	t, _ := generateToken(username, []byte(key))
 	return t

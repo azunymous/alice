@@ -1,31 +1,20 @@
 TODO
-- Setup cluster with kops or other tooling for $10
-
-- Add transforms to thread/posts that are executed before adding to database
-
 - Add more logging per request, response and failure
 
-- Add full black box tests for addThread and addPost with image upload
+- Add full black box tests for addThread and addPost with image upload.
+ e.g add thread, add post, add thread with generated post no, add post with generated post no, getting posts, adding invalid posts
 
-- Replace thread array with thread store to keep list of all threads or find better data structure
+
 - Trim thread/all to remove unnecessary replies
-- Add bumping
-- Add pagination
-- Rethink data structure for threads/posts
 
-- Add thread/post limits and DB deletion of threads and images after they die.
+- Add pagination
+- Add thread/post limits and DB deletion of threads and images after they die - can be done after the thread is deleted
 
 - Improve/create tooling for comparing structs whiling ignoring some or find better way of stopping time
-
-- Add tests for get all threads
 
 - Add validation to addPost/addThread
 - Validate both filename and filepath
 - Add formatting utilities for OP.
-
-
-- Set up spec for file structure
-
 
 -----
 
