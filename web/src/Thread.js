@@ -2,6 +2,7 @@ import React from 'react';
 import {Link} from "react-router-dom";
 
 import './Board.css';
+import './Hover.css';
 
 
 class Thread extends React.Component {
@@ -51,7 +52,7 @@ class Thread extends React.Component {
                                                  src={this.displayImage(thread.post)}/></span><span
                     className="threadHeader">{thread.subject} <span
                     className="postName">{thread.post.name}</span> {thread.post.timestamp} No. <Link
-                    to={"/" + this.state.board + "/res/" + thread.post.no}>{thread.post.no}</Link> <span className="quotedBy">{this.quotedBy(thread.post)}</span></span>
+                    to={"/" + this.state.board + "/res/" + thread.post.no}>{thread.post.no}</Link> <span className="quotedBy">{this.quotedBy(thread.post, thread)}</span></span>
 
                     <div><span className="content">{this.displayComment(thread.post)}</span></div>
                 </div>
@@ -68,14 +69,19 @@ class Thread extends React.Component {
         }
         return thread.replies.map((post) => {
             return (
-                <div key={post.no} className="post">
-                    {this.optionalImage(post)}
-                    <span className="postHeader"><span
-                        className="postName">{post.name}</span> {post.timestamp} No. {post.no} <span className="quotedBy">{this.quotedBy(post)}</span></span>
-                    <div><span className="content">{this.displayComment(post)}</span></div>
-                </div>
+                this.displayPost(post, thread)
             )
         })
+    }
+
+    displayPost(post, thread, hover=false) {
+        return <div key={post.no} className="post">
+            {this.optionalImage(post)}
+            <span className="postHeader"><span
+                className="postName">{post.name}</span> {post.timestamp} No. {post.no} <span
+                className="quotedBy">{this.quotedBy(post, thread, hover)}</span></span>
+            <div><span className="content">{this.displayComment(post)}</span></div>
+        </div>;
     }
 
     displayComment(post) {
@@ -99,15 +105,35 @@ class Thread extends React.Component {
         })
     }
 
-    quotedBy(post) {
-        if (post.quoted_by == null) {
+
+    quotedBy(post, thread, hover=false) {
+        const Hover = ({ onHover, children }) => (
+            <span className="hover">
+                <span className="hover__no-hover">{children}</span>
+                <span className="hover__hover">{onHover}</span>
+            </span>
+        );
+
+
+        if (post.quoted_by == null || hover) {
             return <span/>
         }
         return post.quoted_by.map((postNo, i) => {
             return (
-                <span className="noQuote" key={i}>>>{postNo} </span>
+                <Hover key={i} onHover={this.displayPostHover(this.findPost(thread, postNo), thread)}>
+                    <span className="noQuote" key={i}>>>{postNo} </span>
+                </Hover>
+
             )
         })
+    }
+
+    displayPostHover(post, thread) {
+        if (post === null) {
+            return <span className="hoveredPost"/>
+        }
+
+        return this.displayPost(post, thread, true)
     }
 
     optionalImage(post) {
@@ -124,6 +150,19 @@ class Thread extends React.Component {
             return (<div>. . .</div>)
         }
         return this.displayThread(this.state.thread)
+    }
+
+    findPost(thread, postNo) {
+        if (thread.post.no === postNo) {
+            return thread.post
+        }
+
+        for (let i = 0; i < thread.replies.length; i++) {
+            if (thread.replies[i].no === postNo) {
+                return thread.replies[i]
+            }
+        }
+        return null;
     }
 }
 
