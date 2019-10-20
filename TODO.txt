@@ -1,11 +1,7 @@
 TODO
 - Setup cluster with kops or other tooling for $10
 
-- Add content type and other minio metadata
-
-- Use solution of a list of string segments for formatting server and client side
-e.g
-{["bold, quote"], ">what"}, {["newline"],  ""}, {[""], "more"}
+- Add transforms to thread/posts that are executed before adding to database
 
 - Add more logging per request, response and failure
 

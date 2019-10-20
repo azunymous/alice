@@ -109,9 +109,21 @@ div.thread {
     display: block;
 }
 
+.quotedBy {
+    padding-left: 4px;
+}
+
 .content {
     padding: 7px;
     display: block;
+}
+
+.noQuote {
+    color: darkblue;
+}
+
+.quote {
+    color: darkgreen;
 }
 
 .image {
@@ -132,7 +144,8 @@ div.reply {
 }
 
 form .field {
-    padding: 5px
+    padding: 5px;
+    display: block;
 }
 
 ol {

@@ -63,8 +63,9 @@ func newPostFrom(mjson string) (Post, error) {
 	return p, nil
 }
 
-func addPostQuotedBy(p Post, postQuotingNo uint64) {
+func (p Post) quotedBy(postQuotingNo uint64) Post {
 	p.QuotedBy = append(p.QuotedBy, postQuotingNo)
+	return p
 }
 
 func (p Post) IsValid() bool {
@@ -78,22 +79,23 @@ func (p Post) IsValid() bool {
 	return true
 }
 
-func (p Post) update(postCount uint64) Post {
-	p.No = postCount - 1
+func (p Post) update(postCount uint64) (Post, []Transform) {
+	post := p
+	post.No = postCount - 1
 
-	if len(p.Name) < 1 {
-		p.Name = "Anonymous"
+	if len(post.Name) < 1 {
+		post.Name = "Anonymous"
 	}
 
-	if p.Email == "sage" || p.Email == "noko" || p.Email == "nokosage" {
-		p.Meta = p.Email
-		p.Email = ""
+	if post.Email == "sage" || post.Email == "noko" || post.Email == "nokosage" {
+		post.Meta = post.Email
+		post.Email = ""
 	}
 
-	p.Timestamp = time.Now()
+	post.Timestamp = time.Now()
 
-	p.CommentSegments = p.parse()
-	return p
+	post, threadTransformations := post.parse()
+	return post, threadTransformations
 }
 
 func (p Post) String() string {

@@ -93,19 +93,18 @@ class NewPostForm extends React.Component {
                         <input type="text" name="email" value={this.state.value} onChange={this.handleInputChange}/>
                     </label></div>
                     <div className="field">
-                    <label> Comment: <textarea name="comment" value={this.state.comment}
-                                               onChange={this.handleInputChange}/> </label>
+                        <label> Comment: <textarea name="comment" value={this.state.comment} onChange={this.handleInputChange}/> </label>
                     </div>
                     <div className="field">
-                    <label htmlFor="Image">Image:</label>
-                    <input type="file"
-                           ref={this.fileInput}
-                           onChange={this.handleFileChange}
-                           id="image" name="image"
-                           accept="image/png, image/jpeg"/>
+                        <label htmlFor="Image">Image:</label>
+                        <input type="file"
+                               ref={this.fileInput}
+                               onChange={this.handleFileChange}
+                               id="image" name="image"
+                               accept="image/png, image/jpeg"/>
                     </div>
                     <div className="field">
-                    <input type="submit" value="Submit"/>
+                        <input type="submit" value="Submit"/>
                     </div>
                 </form>
             </div>

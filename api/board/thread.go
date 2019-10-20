@@ -72,10 +72,22 @@ func (t Thread) String() string {
 	return string(bytes)
 }
 
+// Returns the index and post of the reply with the given post no.
+// Returns -1 if the no is not found in the replies.
+func (t Thread) getReplyWithPostNo(no uint64) (index int, p Post) {
+	for i, p := range t.Replies {
+		if p.No == no {
+			return i, p
+		}
+	}
+	return -1, Post{}
+}
+
 func (store *Store) AddThread(thread Thread) (uint64, error) {
 	currentNumberOfPosts := store.incrementAndGet()
 
-	thread.Post = thread.update(currentNumberOfPosts)
+	// Ignore transformations as the thread is empty. (No cross thread transformations for now)
+	thread.Post, _ = thread.update(currentNumberOfPosts)
 	err := store.db.Set(thread)
 	err = store.threads.SetOrdered(data.NewKeyValuePair(store.ID, strconv.FormatUint(thread.No, 10)), int(thread.Timestamp.Unix()))
 	return thread.Post.No, err
@@ -114,9 +126,12 @@ func (store *Store) AddPost(threadNo string, post Post) (uint64, error) {
 	}
 
 	currentNumberOfPosts := store.incrementAndGet()
-	post = post.update(currentNumberOfPosts)
+	post, threadTransformations := post.update(currentNumberOfPosts)
 
 	thread.Replies = append(thread.Replies, post)
+	for _, transformation := range threadTransformations {
+		thread = transformation(thread)
+	}
 	err = store.db.Set(thread)
 	return post.No, err
 }

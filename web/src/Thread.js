@@ -17,7 +17,7 @@ class Thread extends React.Component {
     }
 
     componentDidMount() {
-        if (this.state.thread === undefined || this.state.thread === null || this.state.status === "FAILURE" )
+        if (this.state.thread === undefined || this.state.thread === null || this.state.status === "FAILURE")
             this.getThread()
     }
 
@@ -51,7 +51,7 @@ class Thread extends React.Component {
                                                  src={this.displayImage(thread.post)}/></span><span
                     className="threadHeader">{thread.subject} <span
                     className="postName">{thread.post.name}</span> {thread.post.timestamp} No. <Link
-                    to={"/" + this.state.board + "/res/" + thread.post.no}>{thread.post.no}</Link></span>
+                    to={"/" + this.state.board + "/res/" + thread.post.no}>{thread.post.no}</Link> <span className="quotedBy">{this.quotedBy(thread.post)}</span></span>
 
                     <div><span className="content">{this.displayComment(thread.post)}</span></div>
                 </div>
@@ -71,7 +71,7 @@ class Thread extends React.Component {
                 <div key={post.no} className="post">
                     {this.optionalImage(post)}
                     <span className="postHeader"><span
-                        className="postName">{post.name}</span> {post.timestamp} No. {post.no}</span>
+                        className="postName">{post.name}</span> {post.timestamp} No. {post.no} <span className="quotedBy">{this.quotedBy(post)}</span></span>
                     <div><span className="content">{this.displayComment(post)}</span></div>
                 </div>
             )
@@ -79,7 +79,35 @@ class Thread extends React.Component {
     }
 
     displayComment(post) {
+        if (post.comment_segments == null) {
             return post.comment;
+        }
+
+        function formatAsClasses(segment) {
+            if (segment === null || segment.format === null) {
+                return "";
+            }
+            return segment.map((format) => {
+                return format + " "
+            })
+        }
+
+        return post.comment_segments.map((segment, i) => {
+            return (
+                <div className={formatAsClasses(segment.format)} key={i}>{segment.segment}<br/></div>
+            )
+        })
+    }
+
+    quotedBy(post) {
+        if (post.quoted_by == null) {
+            return <span/>
+        }
+        return post.quoted_by.map((postNo, i) => {
+            return (
+                <span className="noQuote" key={i}>>>{postNo} </span>
+            )
+        })
     }
 
     optionalImage(post) {
