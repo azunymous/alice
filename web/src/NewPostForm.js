@@ -54,7 +54,7 @@ class NewPostForm extends React.Component {
             data.append("image", this.state.image);
         }
 
-        let apiURL = process.env.REACT_APP_API_URL
+        let apiURL = process.env.REACT_APP_API_URL;
         if (this.state.threadNo === null) {
             apiURL = apiURL + '/thread';
             data.append("subject", this.state.subject)
@@ -88,20 +88,25 @@ class NewPostForm extends React.Component {
             <div className="reply">
                 {this.showError()}
                 <form onSubmit={this.handleSubmit}>
-                    <label>
+                    <div className="field"><label>
                         Email:
                         <input type="text" name="email" value={this.state.value} onChange={this.handleInputChange}/>
-                    </label>
+                    </label></div>
+                    <div className="field">
                     <label> Comment: <textarea name="comment" value={this.state.comment}
                                                onChange={this.handleInputChange}/> </label>
-
+                    </div>
+                    <div className="field">
                     <label htmlFor="Image">Image:</label>
                     <input type="file"
                            ref={this.fileInput}
                            onChange={this.handleFileChange}
                            id="image" name="image"
                            accept="image/png, image/jpeg"/>
+                    </div>
+                    <div className="field">
                     <input type="submit" value="Submit"/>
+                    </div>
                 </form>
             </div>
         );

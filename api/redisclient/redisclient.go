@@ -61,6 +61,11 @@ func (r *RedisClient) Set(kv data.KeyValue) error {
 	return err
 }
 
+func (r *RedisClient) Increment(key string) (int64, error) {
+	incr := r.client.Incr(key)
+	return incr.Val(), incr.Err()
+}
+
 func (r *RedisClient) Get(key string) (string, error) {
 	result, getErr := r.client.Get(key).Result()
 	if getErr != nil {

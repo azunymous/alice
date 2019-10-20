@@ -4,14 +4,14 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/alice-ws/alice/data"
+	"log"
 	"strconv"
-	"sync/atomic"
 )
 
 type Store struct {
 	ID      string
 	db      data.KeyValueDB
-	count   uint64
+	count   data.KeyValueDB
 	threads data.OrderedDB
 }
 
@@ -21,12 +21,27 @@ func NewStore(ID string, db data.KeyValueDB, threads data.OrderedDB) *Store {
 		threads = data.NewMemoryDB()
 	}
 
-	return &Store{
+	store := &Store{
 		ID:      ID,
 		db:      db,
-		count:   0,
+		count:   db,
 		threads: threads,
 	}
+
+	// Set the the board count to 0 if the key does not exist.
+	if _, err := db.Get(boardCountKey(store)); err != nil {
+		err := db.Set(data.NewKeyValuePair(boardCountKey(store), "0"))
+		if err != nil {
+			log.Printf("Could not create thread DB")
+		}
+	}
+
+	return store
+}
+
+// Returns key for board count that is stored in the DB
+func boardCountKey(store *Store) string {
+	return store.ID + ":no"
 }
 
 type Thread struct {
@@ -58,9 +73,9 @@ func (t Thread) String() string {
 }
 
 func (store *Store) AddThread(thread Thread) (uint64, error) {
-	atomic.AddUint64(&store.count, 1)
+	currentNumberOfPosts := store.incrementAndGet()
 
-	thread.Post = thread.update(store.count)
+	thread.Post = thread.update(currentNumberOfPosts)
 	err := store.db.Set(thread)
 	err = store.threads.SetOrdered(data.NewKeyValuePair(store.ID, strconv.FormatUint(thread.No, 10)), int(thread.Timestamp.Unix()))
 	return thread.Post.No, err
@@ -98,10 +113,18 @@ func (store *Store) AddPost(threadNo string, post Post) (uint64, error) {
 		return 0, err
 	}
 
-	atomic.AddUint64(&store.count, 1)
-	post = post.update(store.count)
+	currentNumberOfPosts := store.incrementAndGet()
+	post = post.update(currentNumberOfPosts)
 
 	thread.Replies = append(thread.Replies, post)
 	err = store.db.Set(thread)
 	return post.No, err
+}
+
+func (store *Store) incrementAndGet() uint64 {
+	currentCount, err := store.count.Increment(boardCountKey(store))
+	if err != nil {
+		log.Printf("Cannot increment post count.")
+	}
+	return uint64(currentCount)
 }

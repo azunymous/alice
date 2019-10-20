@@ -53,13 +53,13 @@ class Thread extends React.Component {
                     className="postName">{thread.post.name}</span> {thread.post.timestamp} No. <Link
                     to={"/" + this.state.board + "/res/" + thread.post.no}>{thread.post.no}</Link></span>
 
-                    <div><span className="content">{thread.post.comment}</span></div>
+                    <div><span className="content">{this.displayComment(thread.post)}</span></div>
                 </div>
                 <div className="replies">
                     {this.displayReplies(thread, 5)}
                 </div>
             </div>
-        )
+        );
     }
 
     displayReplies(thread) {
@@ -72,10 +72,14 @@ class Thread extends React.Component {
                     {this.optionalImage(post)}
                     <span className="postHeader"><span
                         className="postName">{post.name}</span> {post.timestamp} No. {post.no}</span>
-                    <div><span className="content">{post.comment}</span></div>
+                    <div><span className="content">{this.displayComment(post)}</span></div>
                 </div>
             )
         })
+    }
+
+    displayComment(post) {
+            return post.comment;
     }
 
     optionalImage(post) {

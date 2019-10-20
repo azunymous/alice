@@ -131,6 +131,10 @@ div.reply {
     width: 40%;
 }
 
+form .field {
+    padding: 5px
+}
+
 ol {
     margin: 0px;
 }

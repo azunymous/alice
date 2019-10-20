@@ -12,7 +12,7 @@ deploy:
   kustomize:
     path: "./platform/kustomize"
 profiles:
-  - name: api development
+  - name: api
     build:
       artifacts:
         - image: gcr.io/alice-ws/test/alice
@@ -20,7 +20,7 @@ profiles:
     deploy:
       kustomize:
         path: "./platform/kustomize/api/cd/development"
-  - name: web development
+  - name: web
     build:
       artifacts:
         - image: gcr.io/alice-ws/test/alice-web

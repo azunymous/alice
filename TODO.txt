@@ -1,8 +1,5 @@
 TODO
 - Setup cluster with kops or other tooling for $10
-- Deploy to Kubernetes and use kustomize for resource files
-
-- Fix skaffold run issue where minio takes longer to be ready than alice api does so alice does not bother connecting - can continuously check for connectivity and use it when it is available
 
 - Add content type and other minio metadata
 
@@ -10,8 +7,7 @@ TODO
 e.g
 {["bold, quote"], ">what"}, {["newline"],  ""}, {[""], "more"}
 
-
-- Clean up main.go and remove code duplication during retries
+- Add more logging per request, response and failure
 
 - Add full black box tests for addThread and addPost with image upload
 

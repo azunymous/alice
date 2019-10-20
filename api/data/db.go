@@ -8,6 +8,8 @@ type DB interface {
 type KeyValueDB interface {
 	Ping() bool
 	Set(KeyValue) error
+	// Increment and Get
+	Increment(string) (int64, error)
 	Get(string) (string, error)
 	Remove(string) error
 }

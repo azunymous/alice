@@ -3,6 +3,7 @@ package data
 import (
 	"errors"
 	"sort"
+	"strconv"
 )
 
 type MemoryDB struct {
@@ -25,35 +26,47 @@ func (*MemoryDB) Ping() bool {
 	return true
 }
 
-func (s *MemoryDB) Set(u KeyValue) error {
-	s.m[u.Key()] = u.String()
+func (db *MemoryDB) Set(u KeyValue) error {
+	db.m[u.Key()] = u.String()
 	return nil
 }
 
-func (s *MemoryDB) Get(key string) (string, error) {
-	if val, ok := s.m[key]; ok {
+func (db *MemoryDB) Increment(key string) (int64, error) {
+	i, err := strconv.ParseInt(db.m[key], 10, 0)
+	if err != nil {
+		return 0, err
+	}
+
+	result := i + 1
+	db.m[key] = strconv.FormatInt(result, 10)
+	return result, nil
+}
+
+func (db *MemoryDB) Get(key string) (string, error) {
+	if val, ok := db.m[key]; ok {
 		return val, nil
 	}
 	return "", errors.New("key does not exist")
 }
 
-func (s *MemoryDB) Remove(u string) error {
-	delete(s.m, u)
+func (db *MemoryDB) Remove(u string) error {
+	delete(db.m, u)
 	return nil
 }
 
-func (o *MemoryDB) SetOrdered(kv KeyValue, score int) error {
+func (db *MemoryDB) SetOrdered(kv KeyValue, score int) error {
 	m := member{kv.String(), score}
-	if val, ok := o.ordered[kv.Key()]; ok {
+	if val, ok := db.ordered[kv.Key()]; ok {
 		val = append(val, m)
+		db.ordered[kv.Key()] = val
 	} else {
-		o.ordered[kv.Key()] = []member{m}
+		db.ordered[kv.Key()] = []member{m}
 	}
 	return nil
 }
 
-func (o *MemoryDB) GetAllOrderedByScore(key string) []string {
-	if val, ok := o.ordered[key]; ok {
+func (db *MemoryDB) GetAllOrderedByScore(key string) []string {
+	if val, ok := db.ordered[key]; ok {
 		sort.Slice(val, func(i, j int) bool {
 			return val[i].score < val[j].score
 		})
@@ -62,13 +75,13 @@ func (o *MemoryDB) GetAllOrderedByScore(key string) []string {
 	return nil
 }
 
-func (o *MemoryDB) RemoveOrdered(kv KeyValue) error {
-	delete(o.ordered, kv.Key())
+func (db *MemoryDB) RemoveOrdered(kv KeyValue) error {
+	delete(db.ordered, kv.Key())
 	return nil
 }
 
 func (l list) values() []string {
-	strings := make([]string, len(l))
+	strings := make([]string, 0)
 	for _, v := range l {
 		strings = append(strings, v.value)
 	}
