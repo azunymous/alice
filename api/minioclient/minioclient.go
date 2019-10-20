@@ -6,7 +6,9 @@ import (
 	"github.com/minio/minio-go/v6"
 	"io"
 	"log"
+	"mime"
 	"path"
+	"path/filepath"
 	"strconv"
 	"time"
 )
@@ -59,7 +61,8 @@ func ConnectToMinio(addr, defaultBucket, accessKey, secretAccessKey string) (cli
 }
 
 func (m MinioClient) Store(obj io.Reader, bucket, name string, size int64) (string, error) {
-	_, err := m.client.PutObject(bucket, name, obj, size, minio.PutObjectOptions{})
+
+	_, err := m.client.PutObject(bucket, name, obj, size, minio.PutObjectOptions{ContentType: mime.TypeByExtension(filepath.Ext(name))})
 	if err != nil {
 		return "", err
 	}

@@ -106,7 +106,7 @@ func readyHandler(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
 	if dependencyManagement.Healthy() {
 		w.WriteHeader(http.StatusOK)
 	} else {
-		w.WriteHeader(http.StatusFailedDependency)
+		w.WriteHeader(http.StatusInternalServerError)
 	}
 	_, _ = fmt.Fprintf(w, dependenciesList)
 }
