@@ -15,7 +15,7 @@ function App() {
             <div className="outer">
                 <Router>
                     <span><ul id="menu"><li><Link to="/">Home</Link></li> <li><Link
-                        to="/test/">/test/</Link></li></ul></span>
+                        to="/obj/">/obj/</Link></li></ul></span>
                     <Switch>
                         <Route exact path="/">
                             . . .

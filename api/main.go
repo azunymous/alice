@@ -393,7 +393,7 @@ func setup() string {
 	db := dependencyManagement.GetDB()
 
 	userStore = users.NewStore(db, tokenKey)
-	threadStore = board.NewStore("/test/", db, db)
+	threadStore = board.NewStore("/obj/", db, db)
 
 	log.Printf("Starting on " + port)
 	return port
