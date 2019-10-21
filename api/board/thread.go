@@ -32,7 +32,7 @@ func NewStore(ID string, db data.KeyValueDB, threads data.OrderedDB) *Store {
 	if _, err := db.Get(boardCountKey(store)); err != nil {
 		err := db.Set(data.NewKeyValuePair(boardCountKey(store), "0"))
 		if err != nil {
-			log.Printf("Could not create thread DB")
+			log.Printf("Could not create thread DB: %v", err)
 		}
 	}
 

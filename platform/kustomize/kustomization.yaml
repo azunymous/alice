@@ -2,4 +2,4 @@ resources:
   - ./api/development
   - ./web/development
   - ./minio/development-distributed
-  - ./redis
+  - ./redis/standalone
