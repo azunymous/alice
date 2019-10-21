@@ -1,0 +1,13 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: minio
+spec:
+  rules:
+    - host: minio.igiari.net
+      http:
+        paths:
+          - backend:
+              serviceName: minio-cluster
+              servicePort: 9000
+            path: /

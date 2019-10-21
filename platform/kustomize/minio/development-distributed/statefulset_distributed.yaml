@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: minio
+spec:
+  replicas: 4
+  template:
+    spec:
+      containers:
+        - name: minio
+          args:
+            - server
+            - http://minio-{0...3}.minio.minio.svc.cluster.local/data
+          readinessProbe: null
+          livenessProbe:
+            httpGet:
+              path: /minio/health/live
+              port: 9000
+            initialDelaySeconds: 120
+            periodSeconds: 20
+  volumeClaimTemplates:
+    - metadata:
+        name: minio-pvc
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 4Gi

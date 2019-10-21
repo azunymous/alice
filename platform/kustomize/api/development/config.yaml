@@ -3,7 +3,7 @@ server:
     markUnhealthy: true
 minio:
   addr: minio.minio:9000
-  timeout: 30s
+  timeout: 5m
 redis:
   addr: redis:6379
-  timeout: 30s
+  timeout: 5m

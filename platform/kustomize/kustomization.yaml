@@ -1,5 +1,5 @@
 resources:
   - ./api/development
   - ./web/development
-  - ./minio/development
+  - ./minio/development-distributed
   - ./redis

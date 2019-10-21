@@ -19,7 +19,7 @@ profiles:
           context: api
     deploy:
       kustomize:
-        path: "./platform/kustomize/api/cd/development"
+        path: "./platform/kustomize/api/development"
   - name: web
     build:
       artifacts:
@@ -27,4 +27,12 @@ profiles:
           context: web
     deploy:
       kustomize:
-        path: "./platform/kustomize/web/cd/development"
+        path: "./platform/kustomize/web/development"
+  - name: minio-cluster
+    deploy:
+      kustomize:
+        path: "./platform/kustomize/minio/development-distributed"
+  - name: redis-cluster
+    deploy:
+      kustomize:
+        path: "./platform/kustomize/redis/distributed"

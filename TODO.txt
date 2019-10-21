@@ -1,4 +1,5 @@
 TODO
+- Try distributed redis
 - Add more logging per request, response and failure
 
 - Add full black box tests for addThread and addPost with image upload.
