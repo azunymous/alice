@@ -287,7 +287,7 @@ func getThreadHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Param
 
 	addHeaders(w)
 	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(boardResponse{No: threadNo, Thread: t, Type: Thread})
+	_ = json.NewEncoder(w).Encode(boardResponse{Status: "SUCCESS", No: threadNo, Thread: t, Type: Thread})
 
 }
 

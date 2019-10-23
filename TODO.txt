@@ -2,7 +2,7 @@ TODO
 - Try distributed redis
 - Add more logging per request, response and failure
 
-- Add full black box tests for addThread and addPost with image upload.
+- Add full tests for addThread and addPost with image upload - may be easier as black box tests.
  e.g add thread, add post, add thread with generated post no, add post with generated post no, getting posts, adding invalid posts
 
 

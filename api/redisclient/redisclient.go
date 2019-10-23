@@ -69,7 +69,7 @@ func (r *RedisClient) Increment(key string) (int64, error) {
 func (r *RedisClient) Get(key string) (string, error) {
 	result, getErr := r.client.Get(key).Result()
 	if getErr != nil {
-		return "", errors.New("error getting user " + getErr.Error())
+		return "", errors.New("error getting key " + key + " with " + getErr.Error())
 	}
 	return result, nil
 }
