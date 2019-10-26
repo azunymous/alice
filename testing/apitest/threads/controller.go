@@ -225,7 +225,7 @@ func (tm *Controller) IfEqualToExpectedThread(threadNo ...uint64) *Controller {
 	threadFromDBJSON := tm.threadsFromDatabase[threadNo[0]]
 	threadFromDB := ThreadFromJSON(threadFromDBJSON)
 	expectedThread := tm.threads[threadNo[0]]
-	if !tm.HasSameCoreFields(threadFromDB, expectedThread) || !tm.HasTimeAdjusted(threadFromDB) || !tm.HasSameImage(threadFromDB, expectedThread) {
+	if !tm.HasSameCoreFields(threadFromDB, expectedThread) || !tm.hasTimeAdjusted(threadFromDB) || !tm.hasSameImage(threadFromDB, expectedThread) {
 		log.Fatalf("thread not equal in core fields to expected. got %s expected %s", threadFromDBJSON, expectedThread.AsJSON())
 	}
 	return tm
@@ -239,11 +239,11 @@ func (tm *Controller) finalisedThread() {
 }
 
 // Check that the timestamp of the thread is after it was posted.
-func (tm *Controller) HasTimeAdjusted(threadFromDB Thread) bool {
+func (tm *Controller) hasTimeAdjusted(threadFromDB Thread) bool {
 	return threadFromDB.Timestamp.After(tm.timeAtStart)
 }
 
-func (tm *Controller) HasSameImage(t1 Thread, t2 Thread) bool {
+func (tm *Controller) hasSameImage(t1 Thread, t2 Thread) bool {
 	t1BucketAndFile := strings.Split(t1.Image, "/")
 	t1Image, err1 := tm.minio.GetObject(t1BucketAndFile[0], t1BucketAndFile[1], minio.GetObjectOptions{})
 
@@ -293,6 +293,19 @@ func (tm *Controller) HasSameCoreFields(t1 Thread, t2 Thread) bool {
 
 func (tm *Controller) WithoutImage() *Controller {
 	tm.formFields.Files = nil
+	return tm
+}
+
+func (tm *Controller) WithNoName() *Controller {
+	delete(tm.formFields.Data, "name")
+	return tm
+}
+
+func (tm *Controller) IfNameIs(name string) *Controller {
+	threadFromDB := ThreadFromJSON(tm.threadsFromDatabase[0])
+	if threadFromDB.Name != name {
+		log.Fatalf("Name of thread post got: %s wanted %s", threadFromDB.Name, name)
+	}
 	return tm
 }
 
