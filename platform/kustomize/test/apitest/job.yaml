@@ -1,0 +1,21 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ft
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    spec:
+      containers:
+        - name: ft
+          image: gcr.io/alice-ws/test/alice-ft
+          command: ["go",  "test"]
+          env:
+            - name: API_URL
+              value: alice.alice-testing
+            - name: REDIS_ADDR
+              value: redis.alice-testing:6379
+            - name: MINIO_ADDR
+              value: minio.alice-testing:9000
+      restartPolicy: Never
+  backoffLimit: 4

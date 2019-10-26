@@ -1,0 +1,9 @@
+server:
+  fallbacks:
+    markUnhealthy: true
+minio:
+  addr: minio:9000
+  timeout: 5m
+redis:
+  addr: redis:6379
+  timeout: 5m

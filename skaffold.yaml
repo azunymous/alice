@@ -12,6 +12,16 @@ deploy:
   kustomize:
     path: "./platform/kustomize"
 profiles:
+  - name: test
+    build:
+      artifacts:
+        - image: gcr.io/alice-ws/test/alice
+          context: api
+        - image: gcr.io/alice-ws/test/alice-ft
+          context: testing/apitest
+    deploy:
+      kustomize:
+        path: "./platform/kustomize/test/"
   - name: api
     build:
       artifacts:

@@ -12,10 +12,10 @@ spec:
             - name: MINIO_ACCESS_KEY
               valueFrom:
                 secretKeyRef:
-                  name: minio-access
+                  name: minio-keys
                   key: MINIO_ACCESS_KEY
             - name: MINIO_SECRET_KEY
               valueFrom:
                 secretKeyRef:
-                  name: minio-access
+                  name: minio-keys
                   key: MINIO_SECRET_KEY

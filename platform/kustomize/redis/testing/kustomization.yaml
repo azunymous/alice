@@ -1,8 +1,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
+namespace: alice-testing
 commonLabels:
-  app: minio
-namespace: minio
+  app: redis
 resources:
-  - statefulset.yaml
-  - service.yaml
+  - ../standalone

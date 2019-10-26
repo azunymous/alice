@@ -6,11 +6,12 @@ commonLabels:
 namespace: minio
 resources:
   - ../base
-
+  - ingress.yaml
+  - namespace.yaml
 patchesStrategicMerge:
   - statefulset_env.yaml
   - statefulset_probes.yaml
 secretGenerator:
-  - name: minio-access
+  - name: minio-keys
     envs:
       - env.development.local

@@ -42,6 +42,19 @@ func TestGetThreadAllWithTwoThreads(t *testing.T) {
 		Done()
 }
 
+func TestGetThreadAllWithTwoVariedNumberedThreads(t *testing.T) {
+	op := threads.Operation().
+		ClearRedis().
+		Add().Thread().WithNo(99).And().AnotherThread().WithNo(101).ToRedis()
+
+	_ = test.Get("/thread/all").
+		Expect(t).
+		Status(200).
+		Type("json").
+		JSON(op.ExpectedArray()).
+		Done()
+}
+
 func TestGetThreadWithThreadNotFound(t *testing.T) {
 	threads.Operation().
 		ClearRedis()

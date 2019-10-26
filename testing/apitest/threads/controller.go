@@ -2,12 +2,16 @@ package threads
 
 import (
 	"bytes"
-	"encoding/json"
+	"fmt"
 	"github.com/go-redis/redis"
+	"github.com/minio/minio-go/v6"
+	"github.com/spf13/viper"
 	"gopkg.in/h2non/gentleman.v2/plugins/multipart"
 	"image"
+	"image/draw"
 	"image/png"
 	"log"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -15,10 +19,9 @@ import (
 
 const boardID = "/obj/"
 
-const redisAddr = "localhost:6379"
-
 const (
-	empty     = -1
+	empty = -1
+
 	undefined = 0
 
 	adding = 1
@@ -31,71 +34,31 @@ const (
 	assert = 7
 )
 
+// TODO organize and move thread tooling out
 type Controller struct {
 	redis                   *redis.Client
+	minio                   *minio.Client
 	threadUnderModification Thread
-	threadFromDatabase      string
-	threads                 threadList
+	threadsFromDatabase     map[uint64]string
+	threads                 map[uint64]Thread
+	threadNoList            []uint64
+	images                  map[uint64]*image.RGBA
 	state                   int
 	formFields              multipart.FormData
-}
+	timeAtStart             time.Time
 
-type boardResponse struct {
-	Status string `json:"status"`
-	No     string `json:"no"`
-	Thread Thread `json:"thread"`
-	Type   string `json:"type"`
-}
-
-type Thread struct {
-	Post    `json:"post"`
-	Subject string `json:"subject"`
-	Replies []Post `json:"replies"`
-}
-
-type Post struct {
-	No              uint64    `json:"no"`
-	Timestamp       time.Time `json:"timestamp"`
-	Name            string    `json:"name"`
-	Email           string    `json:"email"`
-	Comment         string    `json:"comment"`
-	CommentSegments []Segment `json:"comment_segments"`
-	Image           string    `json:"image"`
-	Filename        string    `json:"filename"`
-	Meta            string    `json:"meta"`
-	QuotedBy        []uint64  `json:"quoted_by"`
-}
-
-type Segment struct {
-	Format  []string `json:"format"`
-	Segment string   `json:"segment"`
-}
-
-func (r boardResponse) AsJSON() string {
-	b, _ := json.Marshal(r)
-	return string(b)
-}
-
-func (t Thread) AsJSON() string {
-	b, _ := json.Marshal(t)
-	return string(b)
-}
-
-func (t Thread) HasSameCoreFields(t2 Thread) bool {
-	if t.No != t2.No || t.Comment != t2.Comment {
-		return false
-	}
-	return true
-}
-
-func FromJSON(thread string) Thread {
-	t := &Thread{}
-	_ = json.Unmarshal([]byte(thread), t)
-	return *t
+	// Pass through for latter WithFields() function for more readability. For actual expected thread No use passed in values.
+	expectedThreadNo uint64
 }
 
 func Operation() *Controller {
-	return &Controller{redis: redisClient()}
+	return &Controller{
+		redis:               redisClient(),
+		minio:               minioClient(),
+		threadsFromDatabase: map[uint64]string{},
+		threads:             map[uint64]Thread{},
+		images:              map[uint64]*image.RGBA{},
+	}
 }
 
 // TODO Change to be parallelisable
@@ -110,35 +73,50 @@ func (tm *Controller) Add() *Controller {
 	return tm
 }
 
-func (tm *Controller) Thread(threadNo ...string) *Controller {
+func (tm *Controller) Get() *Controller {
+	tm.state = getting
+	return tm
+}
+
+func (tm *Controller) Thread(threadNo ...uint64) *Controller {
 	switch tm.state {
 	case adding:
 		tm.threadUnderModification = thread()
-	case getting:
-		get := tm.redis.Get(threadNo[0])
-		if get.Err() != nil {
-			panic("getting thread from redis error: " + get.Err().Error())
+		if len(threadNo) > 0 {
+			tm.WithNo(threadNo[0])
 		}
-		tm.threadFromDatabase = get.Val()
+	case getting:
+		get := tm.redis.Get(strconv.FormatUint(threadNo[0], 10))
+		if get.Err() != nil {
+			log.Fatalf("getting thread from redis error: %v", get.Err())
+		}
+		tm.threadsFromDatabase[threadNo[0]] = get.Val()
+		tm.state = got
 	}
 	return tm
 }
 
 func (tm *Controller) And() *Controller {
-	tm.finalisedThread()
-	tm.state = adding
+	switch tm.state {
+	case adding:
+		tm.finalisedThread()
+		tm.state = adding
+	case getting:
+		// TODO
+		tm.state = getting
+	}
 	return tm
 }
 
 func (tm *Controller) AnotherThread() *Controller {
 	tm.threadUnderModification = thread()
-	tm.threadUnderModification.No = 1
-	tm.threadUnderModification.Timestamp = tm.threadUnderModification.Timestamp.Add(1 * time.Nanosecond)
+	tm.WithNo(1)
 	return tm
 }
 
 func (tm *Controller) WithNo(no uint64) *Controller {
 	tm.threadUnderModification.No = no
+	tm.threadUnderModification.Timestamp = tm.threadUnderModification.Timestamp.Add(time.Duration(no * 1000000000))
 	return tm
 }
 
@@ -157,11 +135,50 @@ func (tm *Controller) ToRedis() *Controller {
 	return tm
 }
 
+// PrepareToPostThread initializes chain to create the required structs for posting a new thread including multipart form field and an image
+func (tm *Controller) PrepareToPostThread(expectedThreadNo ...uint64) *Controller {
+	tm.state = prepare
+	tm.timeAtStart = time.Now()
+	if len(expectedThreadNo) > 0 {
+		tm.expectedThreadNo = expectedThreadNo[0]
+	}
+	return tm
+}
+
+func (tm *Controller) WithFields() *Controller {
+	squareImage := image.NewRGBA(image.Rectangle{Min: image.Point{0, 0}, Max: image.Point{X: 100, Y: 100}})
+	buffer := new(bytes.Buffer)
+	_ = png.Encode(buffer, squareImage)
+	const comment = "Hello World!"
+	file := []multipart.FormFile{
+		{
+			Name:   "image",
+			Reader: buffer,
+		},
+	}
+
+	fields := multipart.FormData{
+		Data:  map[string]multipart.Values{"comment": {comment}},
+		Files: file,
+	}
+
+	tm.threads[tm.expectedThreadNo] = Thread{
+		Post: Post{
+			No:      tm.expectedThreadNo,
+			Comment: comment,
+		},
+	}
+
+	tm.images[tm.expectedThreadNo] = squareImage
+	tm.formFields = fields
+	return tm
+}
+
 func (tm *Controller) Fields() multipart.FormData {
 	return tm.formFields
 }
 
-func (tm *Controller) ExpectedResponse(threadNo ...int) string {
+func (tm *Controller) ExpectedResponse(threadNo ...uint64) string {
 	switch tm.state {
 	case added:
 		response := boardResponse{
@@ -184,9 +201,19 @@ func (tm *Controller) ExpectedResponse(threadNo ...int) string {
 func (tm *Controller) ExpectedArray() string {
 	switch tm.state {
 	case added:
-		return "[" + strings.Join(tm.threads.asJSON(), ",") + "]"
+		return "[" + strings.Join(tm.getAllThreadsAsJSON(), ",") + "]"
 	}
 	panic("nothing to expect")
+}
+
+func (tm *Controller) getAllThreadsAsJSON() []string {
+	var listAsJSON []string
+
+	// Reverse order
+	for i := len(tm.threadNoList) - 1; i >= 0; i-- {
+		listAsJSON = append(listAsJSON, tm.threads[tm.threadNoList[i]].AsJSON())
+	}
+	return listAsJSON
 }
 
 func (tm *Controller) Check() *Controller {
@@ -194,87 +221,94 @@ func (tm *Controller) Check() *Controller {
 	return tm
 }
 
-func (tm *Controller) IfEqualToExpectedThread() *Controller {
-	if !FromJSON(tm.threadFromDatabase).HasSameCoreFields(tm.threads[0]) {
-		log.Fatalf("thread not equal in core fields to expected. got %s expected %s", tm.threadFromDatabase, tm.threads[0].AsJSON())
+func (tm *Controller) IfEqualToExpectedThread(threadNo ...uint64) *Controller {
+	threadFromDBJSON := tm.threadsFromDatabase[threadNo[0]]
+	threadFromDB := ThreadFromJSON(threadFromDBJSON)
+	expectedThread := tm.threads[threadNo[0]]
+	if !tm.HasSameCoreFields(threadFromDB, expectedThread) || !tm.HasTimeAdjusted(threadFromDB) || !tm.HasSameImage(threadFromDB, expectedThread) {
+		log.Fatalf("thread not equal in core fields to expected. got %s expected %s", threadFromDBJSON, expectedThread.AsJSON())
 	}
 	return tm
 }
 
-func (tm *Controller) finalisedThread() Thread {
-	tm.threads = append(tm.threads, tm.threadUnderModification)
+func (tm *Controller) finalisedThread() {
+	tm.threads[tm.threadUnderModification.No] = tm.threadUnderModification
+	tm.threadNoList = append(tm.threadNoList, tm.threadUnderModification.No)
 	defer func() { tm.threadUnderModification = Thread{} }()
 	tm.state = added
-	return tm.threadUnderModification
 }
 
-// PrepareToPostThread initializes chain to create the required structs for posting a new thread including multipart form field and an image
-func (tm *Controller) PrepareToPostThread() *Controller {
-	tm.state = prepare
-	return tm
+// Check that the timestamp of the thread is after it was posted.
+func (tm *Controller) HasTimeAdjusted(threadFromDB Thread) bool {
+	return threadFromDB.Timestamp.After(tm.timeAtStart)
 }
 
-func (tm *Controller) WithFields() *Controller {
-	_ = png.Encode(new(bytes.Buffer), image.NewRGBA(image.Rectangle{Min: image.Point{0, 0}, Max: image.Point{X: 100, Y: 100}}))
-	const comment = "Hello World!"
-	file := []multipart.FormFile{
-		{
-			Name:   "image",
-			Reader: new(bytes.Buffer),
-		},
+func (tm *Controller) HasSameImage(t1 Thread, t2 Thread) bool {
+	t1BucketAndFile := strings.Split(t1.Image, "/")
+	t1Image, err1 := tm.minio.GetObject(t1BucketAndFile[0], t1BucketAndFile[1], minio.GetObjectOptions{})
+
+	if err1 != nil {
+		log.Fatalf("Error getting images for threads: thread 1 - %v", err1)
 	}
 
-	fields := multipart.FormData{
-		Data:  map[string]multipart.Values{"comment": {comment}},
-		Files: file,
+	src, err := png.Decode(t1Image)
+	if err != nil {
+		log.Fatalf("Error decoding image %v", err)
+	}
+	b := src.Bounds()
+	m := image.NewRGBA(image.Rect(0, 0, b.Dx(), b.Dy()))
+	draw.Draw(m, m.Bounds(), src, b.Min, draw.Src)
+	compare, _ := FastCompare(m, tm.images[t1.No])
+	if compare == 0 {
+		return true
 	}
 
-	tm.threads = append(tm.threads, Thread{
-		Post: Post{
-			No:      0,
-			Comment: comment,
-		},
-	})
-	tm.formFields = fields
-	return tm
+	return false
 }
 
-func (tm *Controller) Get() *Controller {
-	tm.state = getting
+func FastCompare(img1, img2 *image.RGBA) (int64, error) {
+	if img1.Bounds() != img2.Bounds() {
+		return 0, fmt.Errorf("image bounds not equal: %+v, %+v", img1.Bounds(), img2.Bounds())
+	}
+
+	accumError := int64(0)
+
+	for i := 0; i < len(img1.Pix); i++ {
+		accumError += int64(sqDiffUInt8(img1.Pix[i], img2.Pix[i]))
+	}
+
+	return int64(math.Sqrt(float64(accumError))), nil
+}
+func sqDiffUInt8(x, y uint8) uint64 {
+	d := uint64(x) - uint64(y)
+	return d * d
+}
+
+func (tm *Controller) HasSameCoreFields(t1 Thread, t2 Thread) bool {
+	if t1.No != t2.No || t1.Comment != t2.Comment {
+		return false
+	}
+	return true
+}
+
+func (tm *Controller) WithoutImage() *Controller {
+	tm.formFields.Files = nil
 	return tm
 }
 
 func redisClient() *redis.Client {
-	return redis.NewClient(&redis.Options{Addr: redisAddr})
+	return redis.NewClient(&redis.Options{Addr: viper.GetString("redis.addr")})
 }
 
-func post() Post {
-	return Post{
-		No:              0,
-		Timestamp:       time.Unix(0, 0),
-		Name:            "Anonymous",
-		Email:           "",
-		Comment:         "Hello World!",
-		CommentSegments: make([]Segment, 0),
-		Image:           "group/0.png",
-		Filename:        "0.png",
-		Meta:            "",
-		QuotedBy:        make([]uint64, 0),
+func minioClient() *minio.Client {
+	client, err := ConnectToMinio(viper.GetString("minio.addr"), viper.GetString("minio.access"), viper.GetString("minio.secret"))
+	if err != nil {
+		log.Fatalf("cannot connect to minio %v", err)
 	}
+	return client
 }
 
-func thread() Thread {
-	return Thread{Post: post(), Subject: "a subject"}
-}
-
-type threadList []Thread
-
-func (tl threadList) asJSON() []string {
-	var listAsJSON []string
-
-	// Reverse order
-	for i := len(tl) - 1; i >= 0; i-- {
-		listAsJSON = append(listAsJSON, tl[i].AsJSON())
-	}
-	return listAsJSON
+func ConnectToMinio(addr, accessKey, secretAccessKey string) (*minio.Client, error) {
+	minioClient, err := minio.New(addr, accessKey, secretAccessKey, false)
+	return minioClient, err
 }
