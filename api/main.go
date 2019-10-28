@@ -254,7 +254,7 @@ func addThreadHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Param
 
 	addHeaders(w)
 	w.WriteHeader(http.StatusCreated)
-	_ = json.NewEncoder(w).Encode(userResponse{
+	_ = json.NewEncoder(w).Encode(boardResponse{
 		Status: "SUCCESS",
 	})
 }
@@ -338,7 +338,7 @@ func addPostHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params)
 
 	addHeaders(w)
 	w.WriteHeader(http.StatusCreated)
-	_ = json.NewEncoder(w).Encode(userResponse{
+	_ = json.NewEncoder(w).Encode(boardResponse{
 		Status: "SUCCESS",
 	})
 }

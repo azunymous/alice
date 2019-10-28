@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-type boardResponse struct {
+type BoardResponse struct {
 	Status string `json:"status"`
 	No     string `json:"no"`
 	Thread Thread `json:"thread"`
@@ -36,7 +36,7 @@ type Segment struct {
 	Segment string   `json:"segment"`
 }
 
-func (r boardResponse) AsJSON() string {
+func (r BoardResponse) AsJSON() string {
 	b, _ := json.Marshal(r)
 	return string(b)
 }
@@ -79,5 +79,5 @@ func post() Post {
 }
 
 func thread() Thread {
-	return Thread{Post: post(), Subject: "a subject"}
+	return Thread{Post: post(), Subject: "a subject", Replies: []Post{}}
 }

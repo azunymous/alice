@@ -6,12 +6,12 @@ import (
 	"github.com/go-redis/redis"
 	"github.com/minio/minio-go/v6"
 	"github.com/spf13/viper"
-	"gopkg.in/h2non/gentleman.v2/plugins/multipart"
 	"image"
 	"image/draw"
 	"image/png"
 	"log"
 	"math"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -32,9 +32,11 @@ const (
 	got     = 6
 
 	assert = 7
+
+	preparePost = 104
 )
 
-// TODO organize and move thread tooling out
+// TODO organize and split up adding, getting and asserting
 type Controller struct {
 	redis                   *redis.Client
 	minio                   *minio.Client
@@ -44,11 +46,15 @@ type Controller struct {
 	threadNoList            []uint64
 	images                  map[uint64]*image.RGBA
 	state                   int
-	formFields              multipart.FormData
+	postingToThread         uint64
+	postInDB                Post
+	expectedReplyNumber     int
+	formFields              map[string]string
 	timeAtStart             time.Time
-
 	// Pass through for latter WithFields() function for more readability. For actual expected thread No use passed in values.
-	expectedThreadNo uint64
+	expectedPostNo uint64
+	// Pass through for readability for selected thread
+	lookingAtThreadNo uint64
 }
 
 func Operation() *Controller {
@@ -140,48 +146,79 @@ func (tm *Controller) PrepareToPostThread(expectedThreadNo ...uint64) *Controlle
 	tm.state = prepare
 	tm.timeAtStart = time.Now()
 	if len(expectedThreadNo) > 0 {
-		tm.expectedThreadNo = expectedThreadNo[0]
+		tm.expectedPostNo = expectedThreadNo[0]
 	}
+	return tm
+}
+
+func (tm *Controller) PrepareToPostPost(expectedPostNo ...uint64) *Controller {
+	tm.state = preparePost
+	tm.timeAtStart = time.Now()
+	if len(expectedPostNo) > 0 {
+		tm.expectedPostNo = expectedPostNo[0]
+	}
+	return tm
+}
+
+func (tm *Controller) ToThread(threadNo uint64) *Controller {
+	tm.postingToThread = threadNo
 	return tm
 }
 
 func (tm *Controller) WithFields() *Controller {
-	squareImage := image.NewRGBA(image.Rectangle{Min: image.Point{0, 0}, Max: image.Point{X: 100, Y: 100}})
-	buffer := new(bytes.Buffer)
-	_ = png.Encode(buffer, squareImage)
 	const comment = "Hello World!"
-	file := []multipart.FormFile{
-		{
-			Name:   "image",
-			Reader: buffer,
-		},
+	values := map[string]string{"comment": comment}
+
+	post := Post{
+		No:      tm.expectedPostNo,
+		Comment: comment,
 	}
 
-	fields := multipart.FormData{
-		Data:  map[string]multipart.Values{"comment": {comment}},
-		Files: file,
+	if tm.state == prepare {
+		tm.threads[tm.expectedPostNo] = Thread{
+			Post: post,
+		}
+	} else {
+		values["threadNo"] = strconv.FormatUint(tm.postingToThread, 10)
+		threadToBeAddedTo := tm.threads[tm.postingToThread]
+		threadToBeAddedTo.Replies = append(threadToBeAddedTo.Replies, post)
+		tm.threads[tm.postingToThread] = threadToBeAddedTo
 	}
 
-	tm.threads[tm.expectedThreadNo] = Thread{
-		Post: Post{
-			No:      tm.expectedThreadNo,
-			Comment: comment,
-		},
-	}
-
-	tm.images[tm.expectedThreadNo] = squareImage
-	tm.formFields = fields
+	tm.formFields = values
 	return tm
 }
 
-func (tm *Controller) Fields() multipart.FormData {
+func (tm *Controller) WithImage() *bytes.Buffer {
+	squareImage := image.NewRGBA(image.Rectangle{Min: image.Point{0, 0}, Max: image.Point{X: 100, Y: 100}})
+	buffer := new(bytes.Buffer)
+	_ = png.Encode(buffer, squareImage)
+	tm.images[tm.expectedPostNo] = squareImage
+	return buffer
+}
+
+func (tm *Controller) WithoutImage() *Controller {
+	return tm
+}
+
+func (tm *Controller) WithNoName() *Controller {
+	delete(tm.formFields, "name")
+	return tm
+}
+
+func (tm *Controller) WithComment(comment string) *Controller {
+	tm.formFields["comment"] = comment
+	return tm
+}
+
+func (tm *Controller) Fields() map[string]string {
 	return tm.formFields
 }
 
 func (tm *Controller) ExpectedResponse(threadNo ...uint64) string {
 	switch tm.state {
 	case added:
-		response := boardResponse{
+		response := BoardResponse{
 			Status: "SUCCESS",
 			No:     "0",
 			Thread: tm.threads[0],
@@ -192,7 +229,7 @@ func (tm *Controller) ExpectedResponse(threadNo ...uint64) string {
 			response.Thread = tm.threads[threadNo[0]]
 		}
 		return response.AsJSON()
-	case prepare:
+	case prepare, preparePost:
 		return `{"status":"SUCCESS","username":"","error":"","token":""}`
 	}
 	panic("nothing to expect")
@@ -204,6 +241,34 @@ func (tm *Controller) ExpectedArray() string {
 		return "[" + strings.Join(tm.getAllThreadsAsJSON(), ",") + "]"
 	}
 	panic("nothing to expect")
+}
+
+func (tm *Controller) Expected(threadNo ...uint64) BoardResponse {
+	switch tm.state {
+	case added:
+		response := BoardResponse{
+			Status: "SUCCESS",
+			No:     "0",
+			Thread: tm.threads[0],
+			Type:   "THREAD",
+		}
+		if len(threadNo) > 0 {
+			response.No = strconv.FormatUint(tm.threads[threadNo[0]].No, 10)
+			response.Thread = tm.threads[threadNo[0]]
+		}
+		return response
+	case prepare, preparePost:
+		return BoardResponse{Status: "SUCCESS"}
+	}
+	panic("nothing to expect")
+}
+
+func (tm *Controller) ExpectedThreads() []Thread {
+	var list []Thread
+	for i := len(tm.threadNoList) - 1; i >= 0; i-- {
+		list = append(list, tm.threads[tm.threadNoList[i]])
+	}
+	return list
 }
 
 func (tm *Controller) getAllThreadsAsJSON() []string {
@@ -225,10 +290,17 @@ func (tm *Controller) IfEqualToExpectedThread(threadNo ...uint64) *Controller {
 	threadFromDBJSON := tm.threadsFromDatabase[threadNo[0]]
 	threadFromDB := ThreadFromJSON(threadFromDBJSON)
 	expectedThread := tm.threads[threadNo[0]]
-	if !tm.HasSameCoreFields(threadFromDB, expectedThread) || !tm.hasTimeAdjusted(threadFromDB) || !tm.hasSameImage(threadFromDB, expectedThread) {
-		log.Fatalf("thread not equal in core fields to expected. got %s expected %s", threadFromDBJSON, expectedThread.AsJSON())
-	}
+	threadPostFromDB := threadFromDB.Post
+	expectedThreadPost := expectedThread.Post
+	tm.checkPostsAreAlmostEqual(threadPostFromDB, expectedThreadPost)
 	return tm
+}
+
+func (tm *Controller) checkPostsAreAlmostEqual(post1 Post, expectedThreadPost Post) bool {
+	if !tm.HasSameCoreFields(post1, expectedThreadPost) || !tm.hasTimeAdjusted(post1) || !tm.hasSameImage(post1, expectedThreadPost) {
+		log.Fatalf("post not equal in core fields to expected. got %s expected %s", post1.AsJSON(), expectedThreadPost.AsJSON())
+	}
+	return true
 }
 
 func (tm *Controller) finalisedThread() {
@@ -239,11 +311,11 @@ func (tm *Controller) finalisedThread() {
 }
 
 // Check that the timestamp of the thread is after it was posted.
-func (tm *Controller) hasTimeAdjusted(threadFromDB Thread) bool {
+func (tm *Controller) hasTimeAdjusted(threadFromDB Post) bool {
 	return threadFromDB.Timestamp.After(tm.timeAtStart)
 }
 
-func (tm *Controller) hasSameImage(t1 Thread, t2 Thread) bool {
+func (tm *Controller) hasSameImage(t1 Post, t2 Post) bool {
 	t1BucketAndFile := strings.Split(t1.Image, "/")
 	t1Image, err1 := tm.minio.GetObject(t1BucketAndFile[0], t1BucketAndFile[1], minio.GetObjectOptions{})
 
@@ -279,26 +351,17 @@ func FastCompare(img1, img2 *image.RGBA) (int64, error) {
 
 	return int64(math.Sqrt(float64(accumError))), nil
 }
+
 func sqDiffUInt8(x, y uint8) uint64 {
 	d := uint64(x) - uint64(y)
 	return d * d
 }
 
-func (tm *Controller) HasSameCoreFields(t1 Thread, t2 Thread) bool {
+func (tm *Controller) HasSameCoreFields(t1 Post, t2 Post) bool {
 	if t1.No != t2.No || t1.Comment != t2.Comment {
 		return false
 	}
 	return true
-}
-
-func (tm *Controller) WithoutImage() *Controller {
-	tm.formFields.Files = nil
-	return tm
-}
-
-func (tm *Controller) WithNoName() *Controller {
-	delete(tm.formFields.Data, "name")
-	return tm
 }
 
 func (tm *Controller) IfNameIs(name string) *Controller {
@@ -306,6 +369,35 @@ func (tm *Controller) IfNameIs(name string) *Controller {
 	if threadFromDB.Name != name {
 		log.Fatalf("Name of thread post got: %s wanted %s", threadFromDB.Name, name)
 	}
+	return tm
+}
+
+func (tm *Controller) IfCommentSegmentIs(segments []Segment) *Controller {
+	threadFromDB := ThreadFromJSON(tm.threadsFromDatabase[0])
+	if !reflect.DeepEqual(threadFromDB.CommentSegments, segments) {
+		log.Fatalf("Comment segment for post got: %v, wanted: %v", threadFromDB.CommentSegments, segments)
+	}
+	return tm
+}
+
+func (tm *Controller) IfReply(no int) *Controller {
+	thread := ThreadFromJSON(tm.threadsFromDatabase[tm.lookingAtThreadNo])
+	if len(thread.Replies) < no {
+		log.Fatalf("Thread %d does not have reply %d", tm.lookingAtThreadNo, no)
+	}
+	tm.postInDB = thread.Replies[no-1]
+	tm.expectedReplyNumber = no - 1
+	return tm
+}
+
+func (tm *Controller) ForThread(no uint64) *Controller {
+	tm.lookingAtThreadNo = no
+	return tm
+}
+
+func (tm *Controller) EqualToExpectedPost(no uint64) *Controller {
+	tm.checkPostsAreAlmostEqual(tm.postInDB, tm.threads[tm.lookingAtThreadNo].Replies[tm.expectedReplyNumber])
+
 	return tm
 }
 

@@ -1,11 +1,10 @@
 package apitest
 
 import (
+	"github.com/gavv/httpexpect"
 	"github.com/spf13/viper"
-	"gopkg.in/h2non/baloo.v3"
+	"testing"
 )
-
-var test *baloo.Client
 
 func setupConfiguration() {
 	_ = viper.BindEnv("minio.addr", "MINIO_ADDR")
@@ -24,6 +23,9 @@ func setupConfiguration() {
 
 func init() {
 	setupConfiguration()
-	// test stores the HTTP testing client preconfigured
-	test = baloo.New(viper.GetString("api.URL"))
+}
+
+func setup(t *testing.T) *httpexpect.Expect {
+	e := httpexpect.New(t, viper.GetString("api.URL"))
+	return e
 }
