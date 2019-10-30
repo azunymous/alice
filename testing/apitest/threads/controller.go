@@ -31,7 +31,8 @@ const (
 	getting = 5
 	got     = 6
 
-	assert = 7
+	assert     = 7
+	assertPost = 8
 
 	preparePost = 104
 )
@@ -51,6 +52,7 @@ type Controller struct {
 	expectedReplyNumber     int
 	formFields              map[string]string
 	timeAtStart             time.Time
+	currentBoardCount       uint64
 	// Pass through for latter WithFields() function for more readability. For actual expected thread No use passed in values.
 	expectedPostNo uint64
 	// Pass through for readability for selected thread
@@ -102,6 +104,14 @@ func (tm *Controller) Thread(threadNo ...uint64) *Controller {
 	return tm
 }
 
+func (tm *Controller) WithPost(no uint64) *Controller {
+	p := post()
+	p.No = no
+	tm.currentBoardCount = no
+	tm.threadUnderModification.Replies = append(tm.threadUnderModification.Replies, p)
+	return tm
+}
+
 func (tm *Controller) And() *Controller {
 	switch tm.state {
 	case adding:
@@ -123,6 +133,7 @@ func (tm *Controller) AnotherThread() *Controller {
 func (tm *Controller) WithNo(no uint64) *Controller {
 	tm.threadUnderModification.No = no
 	tm.threadUnderModification.Timestamp = tm.threadUnderModification.Timestamp.Add(time.Duration(no * 1000000000))
+	tm.currentBoardCount = no
 	return tm
 }
 
@@ -131,7 +142,7 @@ func (tm *Controller) ToRedis() *Controller {
 	if tm.state == adding {
 		tm.finalisedThread()
 		for _, t := range tm.threads {
-			tm.redis.Set(boardID+":no", t.No+1, 0)
+			tm.redis.Set(boardID+":no", tm.currentBoardCount+1, 0)
 			tm.redis.ZAdd(boardID, redis.Z{Score: float64(t.Timestamp.UnixNano()), Member: t.No})
 			tm.redis.Set(strconv.FormatUint(t.No, 10), t.AsJSON(), 0)
 		}
@@ -364,10 +375,16 @@ func (tm *Controller) HasSameCoreFields(t1 Post, t2 Post) bool {
 	return true
 }
 
-func (tm *Controller) IfNameIs(name string) *Controller {
-	threadFromDB := ThreadFromJSON(tm.threadsFromDatabase[0])
-	if threadFromDB.Name != name {
-		log.Fatalf("Name of thread post got: %s wanted %s", threadFromDB.Name, name)
+func (tm *Controller) NameIs(name string) *Controller {
+	var p Post
+	switch tm.state {
+	case assert:
+		p = ThreadFromJSON(tm.threadsFromDatabase[0]).Post
+	case assertPost:
+		p = tm.postInDB
+	}
+	if p.Name != name {
+		log.Fatalf("Name of thread post got: %s wanted %s", p.Name, name)
 	}
 	return tm
 }
@@ -381,6 +398,8 @@ func (tm *Controller) IfCommentSegmentIs(segments []Segment) *Controller {
 }
 
 func (tm *Controller) IfReply(no int) *Controller {
+	tm.state = assertPost
+
 	thread := ThreadFromJSON(tm.threadsFromDatabase[tm.lookingAtThreadNo])
 	if len(thread.Replies) < no {
 		log.Fatalf("Thread %d does not have reply %d", tm.lookingAtThreadNo, no)

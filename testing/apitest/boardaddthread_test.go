@@ -46,7 +46,7 @@ func TestAddThreadBlankNameIsAnonymous(t *testing.T) {
 		Status(http.StatusCreated).JSON().Equal(op.Expected())
 
 	op.Get().Thread(0).
-		Check().IfNameIs("Anonymous")
+		Check().NameIs("Anonymous")
 }
 
 func TestAddThreadLinesAreParsedIntoSegmentsForEmptyPost(t *testing.T) {
