@@ -64,7 +64,7 @@ func TestAddPostBlankNameIsAnonymous(t *testing.T) {
 		PrepareToPostPost(1).ToThread(0).WithFields().WithNoName()
 
 	e := setup(t)
-	e.POST("/thread").
+	e.POST("/post").
 		WithMultipart().WithFile("image", "image.png", op.WithImage()).WithForm(op.Fields()).
 		Expect().
 		Status(http.StatusCreated).JSON().Equal(op.Expected())
