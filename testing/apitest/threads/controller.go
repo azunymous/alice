@@ -390,9 +390,14 @@ func (tm *Controller) NameIs(name string) *Controller {
 }
 
 func (tm *Controller) IfCommentSegmentIs(segments []Segment) *Controller {
-	threadFromDB := ThreadFromJSON(tm.threadsFromDatabase[0])
-	if !reflect.DeepEqual(threadFromDB.CommentSegments, segments) {
-		log.Fatalf("Comment segment for post got: %v, wanted: %v", threadFromDB.CommentSegments, segments)
+	var post Post
+	if tm.state == assertPost {
+		post = tm.postInDB
+	} else {
+		post = ThreadFromJSON(tm.threadsFromDatabase[0]).Post
+	}
+	if !reflect.DeepEqual(post.CommentSegments, segments) {
+		log.Fatalf("Comment segment for post got: %v, wanted: %v", post.CommentSegments, segments)
 	}
 	return tm
 }
@@ -411,6 +416,7 @@ func (tm *Controller) IfReply(no int) *Controller {
 
 func (tm *Controller) ForThread(no uint64) *Controller {
 	tm.lookingAtThreadNo = no
+	tm.postInDB = ThreadFromJSON(tm.threadsFromDatabase[tm.lookingAtThreadNo]).Post
 	return tm
 }
 
@@ -418,6 +424,22 @@ func (tm *Controller) EqualToExpectedPost(no uint64) *Controller {
 	tm.checkPostsAreAlmostEqual(tm.postInDB, tm.threads[tm.lookingAtThreadNo].Replies[tm.expectedReplyNumber])
 
 	return tm
+}
+
+func (tm *Controller) IsRepliedBy(no uint64) *Controller {
+	if !tm.postIsQuotedBy(no) {
+		log.Fatalf("Post %d does record post no %d quoting it", tm.postInDB.No, no)
+	}
+	return tm
+}
+
+func (tm *Controller) postIsQuotedBy(no uint64) bool {
+	for _, quotedBy := range tm.postInDB.QuotedBy {
+		if quotedBy == no {
+			return true
+		}
+	}
+	return false
 }
 
 func redisClient() *redis.Client {
