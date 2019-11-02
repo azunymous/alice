@@ -1,10 +1,12 @@
 TODO
-- Try distributed redis
+- Add documentation (Go doc) to functions
 - Add more logging per request, response and failure
 
 - Add full tests for addThread and addPost with image upload - may be easier as black box tests.
  e.g add thread, add post, add thread with generated post no, add post with generated post no, getting posts, adding invalid posts
 
+- Add fuzz tests for adding posts to the black box tests - especially with images and comments.
+- Add file validation tests to only allow images.
 
 - Trim thread/all to remove unnecessary replies
 
