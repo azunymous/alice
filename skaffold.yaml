@@ -1,48 +1,48 @@
-apiVersion: skaffold/v1beta16
+apiVersion: skaffold/v1
 kind: Config
 metadata:
   name: alice
 build:
   artifacts:
-    - image: gcr.io/alice-ws/test/alice
-      context: api
-    - image: gcr.io/alice-ws/test/alice-web
-      context: web
+  - image: gcr.io/alice-ws/test/alice
+    context: api
+  - image: gcr.io/alice-ws/test/alice-web
+    context: web
 deploy:
   kustomize:
-    path: "./platform/kustomize"
+    path: ./platform/kustomize
 profiles:
-  - name: test
-    build:
-      artifacts:
-        - image: gcr.io/alice-ws/test/alice
-          context: api
-        - image: gcr.io/alice-ws/test/alice-ft
-          context: testing/apitest
-    deploy:
-      kustomize:
-        path: "./platform/kustomize/test/"
-  - name: api
-    build:
-      artifacts:
-        - image: gcr.io/alice-ws/test/alice
-          context: api
-    deploy:
-      kustomize:
-        path: "./platform/kustomize/api/development"
-  - name: web
-    build:
-      artifacts:
-        - image: gcr.io/alice-ws/test/alice-web
-          context: web
-    deploy:
-      kustomize:
-        path: "./platform/kustomize/web/development"
-  - name: minio-cluster
-    deploy:
-      kustomize:
-        path: "./platform/kustomize/minio/development-distributed"
-  - name: redis-cluster
-    deploy:
-      kustomize:
-        path: "./platform/kustomize/redis/distributed"
+- name: test
+  build:
+    artifacts:
+    - image: gcr.io/alice-ws/test/alice
+      context: api
+    - image: gcr.io/alice-ws/test/alice-ft
+      context: testing/apitest
+  deploy:
+    kustomize:
+      path: ./platform/kustomize/test/
+- name: api
+  build:
+    artifacts:
+    - image: gcr.io/alice-ws/test/alice
+      context: api
+  deploy:
+    kustomize:
+      path: ./platform/kustomize/api/development
+- name: web
+  build:
+    artifacts:
+    - image: gcr.io/alice-ws/test/alice-web
+      context: web
+  deploy:
+    kustomize:
+      path: ./platform/kustomize/web/development
+- name: minio-cluster
+  deploy:
+    kustomize:
+      path: ./platform/kustomize/minio/development-distributed
+- name: redis-cluster
+  deploy:
+    kustomize:
+      path: ./platform/kustomize/redis/distributed
