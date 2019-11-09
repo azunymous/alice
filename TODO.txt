@@ -2,15 +2,16 @@ TODO
 - Add documentation (Go doc) to functions
 - Add more logging per request, response and failure
 
-- Add full tests for addThread and addPost with image upload - may be easier as black box tests.
+- Add more tests for addThread and addPost with image upload
  e.g add thread, add post, add thread with generated post no, add post with generated post no, getting posts, adding invalid posts
+- Clean up test framework to be more restrictive on which steps can be used where (using tm.state)
 
 - Add fuzz tests for adding posts to the black box tests - especially with images and comments.
-- Add file validation tests to only allow images.
+- Add file validation implementation & tests to only allow images.
 
 - Trim thread/all to remove unnecessary replies
 
-- Add pagination
+- Add pagination to threads
 - Add thread/post limits and DB deletion of threads and images after they die - can be done after the thread is deleted
 
 - Improve/create tooling for comparing structs whiling ignoring some or find better way of stopping time
