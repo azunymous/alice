@@ -12,7 +12,7 @@ spec:
           command: ["go",  "test"]
           env:
             - name: API_URL
-              value: alice.alice-testing
+              value: http://alice.alice-testing
             - name: REDIS_ADDR
               value: redis.alice-testing:6379
             - name: MINIO_ADDR

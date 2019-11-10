@@ -22,6 +22,28 @@ profiles:
   deploy:
     kustomize:
       path: ./platform/kustomize/test/
+- name: test-local
+  build:
+    artifacts:
+      - image: gcr.io/alice-ws/test/alice
+        context: api
+  deploy:
+    kustomize:
+      path: ./platform/kustomize/test/local
+  portForward:
+    - resourceType: service
+      resourceName: alice
+      namespace: alice-local
+      port: 80
+      localPort: 8080
+    - resourceType: service
+      resourceName: redis
+      namespace: alice-local
+      port: 6379
+    - resourceType: service
+      resourceName: minio
+      namespace: alice-local
+      port: 9000
 - name: api
   build:
     artifacts:

@@ -1,4 +1,5 @@
 TODO
+- Fix end to end tests when running via skaffold job
 - Add documentation (Go doc) to functions
 - Add more logging per request, response and failure
 

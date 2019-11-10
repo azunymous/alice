@@ -407,7 +407,7 @@ func (tm *Controller) IfReply(no int) *Controller {
 
 	thread := ThreadFromJSON(tm.threadsFromDatabase[tm.lookingAtThreadNo])
 	if len(thread.Replies) < no {
-		log.Fatalf("Thread %d does not have reply %d", tm.lookingAtThreadNo, no)
+		log.Fatalf("Thread %d does not have reply %d, Got thread: %v", tm.lookingAtThreadNo, no, thread)
 	}
 	tm.postInDB = thread.Replies[no-1]
 	tm.expectedReplyNumber = no - 1

@@ -301,6 +301,8 @@ func addPostHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params)
 	email := r.FormValue("email")
 	thread := r.FormValue("threadNo")
 	comment := r.FormValue("comment")
+
+	log.Printf("Creating post with fields %s, %s, %s in thread %s", name, email, comment, thread)
 	post := board.CreatePost(name, email, comment)
 
 	_, header, err := r.FormFile("image")
@@ -327,7 +329,7 @@ func addPostHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params)
 		return
 	}
 
-	log.Printf("Add Post: %v in thread %s", post, thread)
+	log.Printf("Added Post: %v in thread %s", post, thread)
 	_, err = threadStore.AddPost(thread, post)
 
 	if err != nil {
