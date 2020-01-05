@@ -6,7 +6,7 @@ metadata:
   name: minio
 spec:
   rules:
-    - host: minio.igiari.net
+    - host: minio-development.igiari.net
       http:
         paths:
           - backend:

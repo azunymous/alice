@@ -2,7 +2,5 @@ namespace: alice-web
 commonLabels:
   app: alice-web
 resources:
-  - namespace.yaml
   - deployment.yaml
   - service.yaml
-  - ingress.yaml

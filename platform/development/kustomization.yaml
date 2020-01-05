@@ -1,0 +1,7 @@
+commonLabels:
+  variant: test
+resources:
+  - ../kustomize/api/development
+  - ../kustomize/web/development
+  - ../kustomize/minio/development
+  - ../kustomize/redis/standalone

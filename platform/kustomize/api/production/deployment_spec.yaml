@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alice
+spec:
+  template:
+    spec:
+      containers:
+        - name: alice
+          image:  gcr.io/alice-ws/test/alice:0.0.1
+          volumeMounts:
+            - name: config-volume
+              mountPath: /config/
+          livenessProbe:
+            httpGet:
+              path: /live
+              port: 8081
+            initialDelaySeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8080
+            initialDelaySeconds: 20
+      volumes:
+        - name: config-volume
+          configMap:
+            name: alice-config

@@ -1,7 +1,0 @@
-commonLabels:
-  variant: test
-resources:
-  - api/development
-  - web/development
-  - minio/development
-  - redis/standalone

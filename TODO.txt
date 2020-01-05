@@ -1,4 +1,11 @@
 TODO
+- Add production deployment
+- Reorganize directory structure
+- Add admin tools
+
+- Add https and TLS with certmagic
+- Add captcha via captchouli?
+
 - Fix end to end tests when running via skaffold job
 - Add documentation (Go doc) to functions
 - Add more logging per request, response and failure
@@ -20,7 +27,6 @@ TODO
 - Add validation to addPost/addThread
 - Validate both filename and filepath
 - Add formatting utilities for OP.
-
 -----
 
 Before deploying:

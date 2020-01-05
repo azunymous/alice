@@ -1,0 +1,5 @@
+resources:
+  - ../kustomize/api/production
+  - ../kustomize/redis/production
+  - ../kustomize/minio/production
+  - ../kustomize/web/production

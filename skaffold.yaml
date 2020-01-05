@@ -8,9 +8,11 @@ build:
     context: api
   - image: gcr.io/alice-ws/test/alice-web
     context: web
+    docker:
+      dockerfile: development.Dockerfile
 deploy:
   kustomize:
-    path: ./platform/kustomize
+    path: ./platform/development
 profiles:
 - name: test
   build:
@@ -68,3 +70,13 @@ profiles:
   deploy:
     kustomize:
       path: ./platform/kustomize/redis/distributed
+- name: production
+  build:
+    artifacts:
+      - image: gcr.io/alice-ws/production/alice
+        context: api
+      - image: gcr.io/alice-ws/production/alice-web
+        context: web
+  deploy:
+    kustomize:
+      path: ./platform/production

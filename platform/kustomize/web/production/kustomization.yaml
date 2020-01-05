@@ -1,11 +1,10 @@
-namespace: alice-web-development
+namespace: alice-web-production
 commonLabels:
-  variant: development
-commonAnnotations:
-  note: This is a development environment
+  variant: production
 resources:
   - ../base
   - namespace.yaml
   - ingress.yaml
 patchesStrategicMerge:
+  - deployment_replicas.yaml
   - deployment_spec.yaml

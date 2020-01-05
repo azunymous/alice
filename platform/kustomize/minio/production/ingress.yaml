@@ -3,13 +3,13 @@ kind: Ingress
 metadata:
   annotations:
     kubernetes.io/ingress.class: nginx
-  name: alice
+  name: minio
 spec:
   rules:
-    - host: api-development.igiari.net
+    - host: minio.igiari.net
       http:
         paths:
           - backend:
-              serviceName: alice
-              servicePort: 80
+              serviceName: minio
+              servicePort: 9000
             path: /
