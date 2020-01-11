@@ -7,7 +7,7 @@ spec:
     spec:
       containers:
         - name: alice
-          image:  gcr.io/alice-ws/test/alice:0.0.1
+          image:  gcr.io/alice-ws/production/alice:0.0.1
           volumeMounts:
             - name: config-volume
               mountPath: /config/

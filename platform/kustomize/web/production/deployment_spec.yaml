@@ -7,6 +7,6 @@ spec:
     spec:
       containers:
         - name: alice-web
-          image: gcr.io/alice-ws/test/alice-web:0.0.1
+          image: gcr.io/alice-ws/production/alice-web:0.0.1
           ports:
             - containerPort: 8080
