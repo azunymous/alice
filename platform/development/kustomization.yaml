@@ -4,4 +4,4 @@ resources:
   - ../../api/platform/development
   - ../../web/platform/development
   - ../dependencies/minio/development
-  - ../dependencies/redis/standalone
+  - ../dependencies/redis/development

@@ -49,6 +49,20 @@ func TestAddThreadBlankNameIsAnonymous(t *testing.T) {
 		Check().NameIs("Anonymous")
 }
 
+func TestAddThreadSageMovedToMeta(t *testing.T) {
+	op := threads.Operation().ClearRedis().
+		PrepareToPostThread().WithFields().WithEmail("sage")
+
+	e := setup(t)
+	e.POST("/thread").
+		WithMultipart().WithFile("image", "image.png", op.WithImage()).WithForm(op.Fields()).
+		Expect().
+		Status(http.StatusCreated).JSON().Equal(op.Expected())
+
+	op.Get().Thread(0).
+		Check().EmailIs("").MetaIs("sage")
+}
+
 func TestAddThreadLinesAreParsedIntoSegmentsForEmptyPost(t *testing.T) {
 	const comment = ``
 	op := threads.Operation().ClearRedis().

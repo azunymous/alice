@@ -3,7 +3,6 @@ package board
 import (
 	"github.com/alice-ws/alice/data"
 	"reflect"
-	"runtime"
 	"strconv"
 	"testing"
 	"time"
@@ -86,98 +85,30 @@ func TestPost_validate(t *testing.T) {
 	}
 }
 
-func TestPost_update(t *testing.T) {
-	tests := []struct {
-		name      string
-		inputPost Post
-		want      Post
-	}{
-		{
-			name:      "add 'Anonymous' to name field if name is missing",
-			inputPost: post().with("Name", ""),
-			want:      post().with("Name", "Anonymous"),
-		},
-		{
-			name:      "move sage from email field to meta field",
-			inputPost: post().with("Email", "sage"),
-			want:      post().with("Email", "").with("Meta", "sage"),
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got, _ := tt.inputPost.update(1); !equalToIgnoringTime(got, tt.want) {
-				t.Errorf("update() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestStore_AddPost(t *testing.T) {
-	type fields struct {
-		db    data.KeyValueDB
-		count data.KeyValueDB
-	}
-	type args struct {
-		post Post
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    func(input Post, returnValue uint64, store Store) bool
-		wantErr bool
-	}{
-		{
-			name: "first post is created with incremented post no and post is added to thread",
-			fields: fields{
-				db:    data.NewMemoryDB(),
-				count: data.NewMemoryDB(),
-			},
-			args: args{
-				post: post(),
-			},
-			want:    countIsIncrementedForPost,
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			store := &Store{
-				db:    tt.fields.db,
-				count: tt.fields.count,
-			}
-			_ = store.db.Set(thread()) // thread in database has number 0
-
-			got, err := store.AddPost("0", tt.args.post)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("AddPost() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !tt.want(tt.args.post, got, *store) {
-				t.Errorf("AddPost() got = %v, want %v", got, runtime.FuncForPC(reflect.ValueOf(tt.want).Pointer()).Name())
-			}
-		})
-	}
-}
-
 func TestStore_AddPost_countDoesNotIncreaseInError(t *testing.T) {
 	store := &Store{
 		db:    data.NewMemoryDB(),
 		count: data.NewMemoryDB(),
 	}
+
 	_ = store.db.Set(thread()) // thread in database has number 0
+	_ = store.count.Set(data.NewKeyValuePair("/test/:no", "1"))
 
 	_, err := store.AddPost("99", post().with("No", uint64(1)))
 
-	count, _ := store.count.Get("/test/")
+	count, _ := store.count.Get("/test/:no")
 	if err == nil || count != strconv.Itoa(1) {
-		t.Errorf("Expected error and count to be unchanged, got %d, want 1", store.count)
+		t.Errorf("Expected error and count to be unchanged, got %s, want 1", count)
 	}
 }
 
 // Utility functions
 func post() Post {
 	return NewPost(0, time.Unix(0, 0), "Anonymous", "", "Hello World!", "/path/0", "file.png", "")
+}
+
+func thread() Thread {
+	return NewThread(post(), "A subject")
 }
 
 func (p Post) with(fieldName string, value interface{}) Post {
@@ -189,20 +120,4 @@ func equalToIgnoringTime(p, p2 Post) bool {
 	p.Timestamp = time.Unix(0, 0)
 	p2.Timestamp = time.Unix(0, 0)
 	return reflect.DeepEqual(p, p2)
-}
-
-func countIsIncrementedForPost(input Post, _ uint64, store Store) bool {
-	get, err := store.db.Get("0")
-
-	expectedPost := input
-	expectedPost.No = 4
-
-	got, _ := newThreadFrom(get)
-	count, _ := store.count.Get("/test/")
-	if err == nil && count == strconv.Itoa(5) && equalToIgnoringTime(expectedPost, got.Replies[0]) {
-		return true
-	}
-
-	println("Count was not incremented and/or DB does not contain the post")
-	return false
 }

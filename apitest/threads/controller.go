@@ -217,6 +217,11 @@ func (tm *Controller) WithNoName() *Controller {
 	return tm
 }
 
+func (tm *Controller) WithEmail(e string) *Controller {
+	tm.formFields["email"] = e
+	return tm
+}
+
 func (tm *Controller) WithComment(comment string) *Controller {
 	tm.formFields["comment"] = comment
 	return tm
@@ -385,6 +390,34 @@ func (tm *Controller) NameIs(name string) *Controller {
 	}
 	if p.Name != name {
 		log.Fatalf("Name of thread post got: %s wanted %s", p.Name, name)
+	}
+	return tm
+}
+
+func (tm *Controller) EmailIs(email string) *Controller {
+	var p Post
+	switch tm.state {
+	case assert:
+		p = ThreadFromJSON(tm.threadsFromDatabase[0]).Post
+	case assertPost:
+		p = tm.postInDB
+	}
+	if p.Email != email {
+		log.Fatalf("Name of thread post got: %s wanted %s", p.Email, email)
+	}
+	return tm
+}
+
+func (tm *Controller) MetaIs(meta string) *Controller {
+	var p Post
+	switch tm.state {
+	case assert:
+		p = ThreadFromJSON(tm.threadsFromDatabase[0]).Post
+	case assertPost:
+		p = tm.postInDB
+	}
+	if p.Meta != meta {
+		log.Fatalf("Name of thread post got: %s wanted %s", p.Meta, meta)
 	}
 	return tm
 }
