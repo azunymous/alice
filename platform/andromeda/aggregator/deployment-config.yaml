@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aggregator
+spec:
+  template:
+    spec:
+      containers:
+        - name: aggregator
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: agg
+          volumeMounts:
+            - mountPath: /config/
+              name: config
+      volumes:
+        - name: config
+          configMap:
+            name: aggregator-config

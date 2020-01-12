@@ -1,0 +1,5 @@
+namespace: andromeda-tools
+resources:
+  - aggregator
+  - collector
+  - namespace.yaml

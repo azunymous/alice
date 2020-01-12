@@ -1,0 +1,8 @@
+aggregator:
+  clusters:
+    GKE:
+      type: kubernetes
+      collectors:
+       - http://collector:8080
+  teams:
+    - igiari

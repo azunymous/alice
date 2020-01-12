@@ -1,0 +1,10 @@
+cluster:
+  namespaceSuffixes:
+    - -development
+    - -testing
+    - -production
+  priority:
+    first:
+      - -development
+    last:
+      - -production

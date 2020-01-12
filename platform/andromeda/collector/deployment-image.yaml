@@ -1,0 +1,10 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: collector
+spec:
+  template:
+    spec:
+      containers:
+        - name: collector
+          image: gcr.io/igiari/andromeda-collector:v0.1.0-alpha

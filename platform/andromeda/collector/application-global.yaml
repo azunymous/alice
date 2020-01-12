@@ -1,0 +1,25 @@
+global:
+  canary:
+    enabled: true
+    selector:
+      variant: canary
+  teams:
+    - name: andromeda
+      applications:
+        - name: collector
+          prefix: andromeda
+        - name: aggregator
+          prefix: andromeda
+        - name: web
+          prefix: andromeda
+    - name: igiari
+      applications:
+        - name: alice
+          prefix: alice
+          selector:
+            app: alice
+        - name: alice-web
+          prefix: alice-web
+        - name: minio
+          prefix: minio
+          statefulSet: minio

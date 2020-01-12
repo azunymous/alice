@@ -1,0 +1,10 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aggregator
+spec:
+  template:
+    spec:
+      containers:
+        - name: aggregator
+          image: gcr.io/igiari/andromeda-aggregator:v0.1.0-alpha

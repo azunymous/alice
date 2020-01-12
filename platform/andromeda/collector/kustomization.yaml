@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - github.com/azunymous/andromeda/collector/platform/base
+  - serviceaccount.yaml
+  - roles.yaml
+patchesStrategicMerge:
+  - deployment-image.yaml
+  - deployment-config.yaml
+  - deployment-service-acccount-patch.yaml
+configMapGenerator:
+  - name: collector-config
+    files:
+      - application-global.yaml
+      - application-cluster.yaml

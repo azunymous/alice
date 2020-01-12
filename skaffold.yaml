@@ -70,6 +70,10 @@ profiles:
   deploy:
     kustomize:
       path: ./platform/kustomize/redis/distributed
+- name: andromeda
+  deploy:
+    kustomize:
+      path: ./platform/andromeda
 - name: production
   build:
     artifacts:
