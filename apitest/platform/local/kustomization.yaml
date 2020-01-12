@@ -1,0 +1,6 @@
+namespace: alice-local
+resources:
+  - namespace_alice_local.yaml
+  - ../../../api/platform/testing
+  - ../../../../platform/kustomize/redis/testing
+  - ../../../../platform/kustomize/minio/testing

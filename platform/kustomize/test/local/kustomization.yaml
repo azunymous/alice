@@ -1,6 +1,0 @@
-namespace: alice-local
-resources:
-  - namespace_alice_local.yaml
-  - ../../api/testing
-  - ../../redis/testing
-  - ../../minio/testing

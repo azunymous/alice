@@ -1,0 +1,6 @@
+resources:
+  - namespace_alice.yaml
+  - ../../apitest/platform/apitest
+  - ../../api/platform/testing
+  - ../dependencies/redis/testing
+  - ../dependencies/minio/testing

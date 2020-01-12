@@ -1,5 +1,5 @@
 resources:
-  - ../kustomize/api/production
-  - ../kustomize/redis/production
-  - ../kustomize/minio/production
-  - ../kustomize/web/production
+  - ../../api/platform/production
+  - ../../web/platform/production
+  - ../dependencies/redis/production
+  - ../dependencies/minio/production
