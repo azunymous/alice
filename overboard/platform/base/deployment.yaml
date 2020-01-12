@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: overboard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: overboard
+  template:
+    spec:
+      containers:
+        - name: overboard
+          image: gcr.io/alice-ws/build/overboard:0.0.1
+          ports:
+            - containerPort: 9090
+          env:
+            - name: environment
+              value: "dev"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 9090
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 9090

@@ -13,6 +13,8 @@ class Thread extends React.Component {
         this.state = {
             status: "SUCCESS",
             board: this.props.board,
+            apiUrl: this.props.apiUrl,
+            imageContext: this.props.imageContext,
             no: this.props.no,
             thread: this.props.thread,
             limit: this.props.limit
@@ -20,12 +22,13 @@ class Thread extends React.Component {
     }
 
     componentDidMount() {
-        if (this.state.thread === undefined || this.state.thread === null || this.state.status === "FAILURE")
+        if (this.state.thread === undefined || this.state.thread === null || this.state.status === "FAILURE") {
             this.getThread()
+        }
     }
 
     getThread() {
-        fetch(process.env.REACT_APP_API_URL + '/thread?no=' + this.state.no)
+        fetch(this.state.apiUrl + '/thread?no=' + this.state.no)
             .then((response) => {
                 return response.json()
             })
@@ -39,10 +42,10 @@ class Thread extends React.Component {
     }
 
     displayImage(post) {
-        if (process.env.REACT_APP_IMAGE_CONTEXT.startsWith("http")) {
-            return process.env.REACT_APP_IMAGE_CONTEXT + "/" + post.image
+        if (this.state.imageContext.startsWith("http")) {
+            return this.state.imageContext + "/" + post.image
         }
-        return process.env.PUBLIC_URL + process.env.REACT_APP_IMAGE_CONTEXT + post.image;
+        return process.env.PUBLIC_URL + this.state.imageContext + post.image;
     }
 
     displayThread(thread) {

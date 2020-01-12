@@ -1,5 +1,6 @@
 resources:
   - ../../api/platform/production
+  - ../../overboard/platform/production
   - ../../web/platform/production
   - ../dependencies/redis/production
   - ../dependencies/minio/production

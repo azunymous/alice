@@ -6,7 +6,7 @@ metadata:
   name: alice
 spec:
   rules:
-    - host: api.igiari.net
+    - host: obj.igiari.net
       http:
         paths:
           - backend:

@@ -1,2 +1,4 @@
 boards:
-  /obj/: http://localhost:8080
+  /obj/:
+    host: http://localhost:8080
+    images: /images/

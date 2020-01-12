@@ -1,0 +1,4 @@
+boards:
+  /obj/:
+    host: http://obj-development.igiari.net
+    images: http://minio-development.igiari.net

@@ -2,6 +2,7 @@ commonLabels:
   variant: test
 resources:
   - ../../api/platform/development
+  - ../../overboard/platform/development
   - ../../web/platform/development
   - ../dependencies/minio/development
   - ../dependencies/redis/development

@@ -5,6 +5,7 @@ class NewPostForm extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
+            apiUrl: this.props.apiUrl,
             email: 'noko',
             comment: '',
             subject: '',
@@ -54,7 +55,7 @@ class NewPostForm extends React.Component {
             data.append("image", this.state.image);
         }
 
-        let apiURL = process.env.REACT_APP_API_URL;
+        let apiURL = this.state.apiUrl;
         if (this.state.threadNo === null) {
             apiURL = apiURL + '/thread';
             data.append("subject", this.state.subject)

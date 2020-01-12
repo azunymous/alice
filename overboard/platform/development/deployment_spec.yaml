@@ -1,0 +1,17 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: overboard
+spec:
+  template:
+    spec:
+      containers:
+        - name: overboard
+          image:  gcr.io/alice-ws/test/overboard:0.0.1
+          volumeMounts:
+            - name: config-volume
+              mountPath: /config/
+      volumes:
+        - name: config-volume
+          configMap:
+            name: overboard-config

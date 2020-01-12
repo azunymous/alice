@@ -10,6 +10,11 @@ import (
 	"net/http"
 )
 
+type Board struct {
+	Host   string `json:"host"`
+	Images string `json:"images"`
+}
+
 func homePageHandler(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
 	addHeaders(w)
 	_, _ = fmt.Fprintf(w, `{"V" : "1", "data" : "ALICE OVERBOARD API"}`)
@@ -17,8 +22,15 @@ func homePageHandler(w http.ResponseWriter, _ *http.Request, _ httprouter.Params
 
 func overboardHandler(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
 	addHeaders(w)
+	var boards map[string]Board
+	err := viper.UnmarshalKey("boards", &boards)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = fmt.Fprintf(w, `{"ERROR" : "Could not read configuration"}`)
+		return
+	}
 	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(viper.GetStringMapString("boards"))
+	_ = json.NewEncoder(w).Encode(boards)
 }
 
 func handler() http.Handler {
@@ -35,8 +47,8 @@ func addHeaders(w http.ResponseWriter) {
 func main() {
 	viper.SetDefault("server.port", ":9090")
 
-	viper.SetDefault("boards", map[string]string{
-		"/obj/": "http://localhost:8080",
+	viper.SetDefault("boards", map[string]Board{
+		"/obj/": {Host: "http://localhost:8080", Images: "/images/"},
 	})
 
 	viper.SetConfigName("config") // name of config file (without extension)
