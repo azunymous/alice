@@ -3,11 +3,10 @@ kind: Kustomization
 commonLabels:
   app: minio
   variant: production
-namespace: minio-production
+namespace: alice-production
 resources:
   - ../base
   - ingress.yaml
-  - namespace.yaml
 patchesStrategicMerge:
   - statefulset_env.yaml
   - statefulset_probes.yaml

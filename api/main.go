@@ -40,6 +40,7 @@ func configuration() {
 
 	dir, _ := os.Getwd()
 	viper.SetDefault("board.ID", "/obj/")
+	_ = viper.BindEnv("board.ID", "BOARD_ID")
 	viper.SetDefault("board.images.dir", filepath.Join(filepath.Dir(dir), "/web/public/images"))
 
 	viper.SetConfigName("config") // name of config file (without extension)

@@ -2,7 +2,7 @@ server:
   fallbacks:
     markUnhealthy: true
 minio:
-  addr: minio.minio-production:9000
+  addr: minio:9000
   timeout: 5m
 redis:
   addr: redis:6379

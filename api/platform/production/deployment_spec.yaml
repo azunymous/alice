@@ -8,6 +8,9 @@ spec:
       containers:
         - name: alice
           image:  gcr.io/alice-ws/production/alice:0.0.1
+          env:
+            - name: BOARD_ID
+              value: /obj/
           volumeMounts:
             - name: config-volume
               mountPath: /config/

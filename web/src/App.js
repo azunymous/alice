@@ -69,7 +69,6 @@ function App() {
       )
     }
     let {apiURL, imageContext} = getBoardDetails(boardID);
-    console.log(apiURL, imageContext);
     return (
         <Board name={boardID} apiUrl={apiURL} imageContext={imageContext}/>
     );
