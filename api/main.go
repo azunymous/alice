@@ -39,6 +39,7 @@ func configuration() {
 	viper.SetDefault("users", map[string]string{"alice": "admin"})
 
 	dir, _ := os.Getwd()
+	viper.SetDefault("board.ID", "/obj/")
 	viper.SetDefault("board.images.dir", filepath.Join(filepath.Dir(dir), "/web/public/images"))
 
 	viper.SetConfigName("config") // name of config file (without extension)
@@ -119,7 +120,8 @@ func setup() string {
 	mediaRepo = mc
 
 	db := dependencyManagement.GetDB()
-	threadStore = board.NewStore("/obj/", db, db)
+	boardID := viper.GetString("board.ID")
+	threadStore = board.NewStore(boardID, db, db)
 
 	log.Printf("Starting on " + port)
 	return port
