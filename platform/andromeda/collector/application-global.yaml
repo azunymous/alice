@@ -16,10 +16,13 @@ global:
       applications:
         - name: alice
           prefix: alice
-          selector:
-            app: alice
         - name: alice-web
           prefix: alice-web
         - name: minio
-          prefix: minio
+          prefix: alice
           statefulSet: minio
+        - name: redis
+          prefix: alice
+          statefulSet: redis
+        - name: overboard
+          prefix: overboard

@@ -1,0 +1,16 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+spec:
+  template:
+    spec:
+      containers:
+        - name: web
+          volumeMounts:
+            - mountPath: /usr/share/nginx/html/config/
+              name: config
+      volumes:
+        - name: config
+          configMap:
+            name: web-config

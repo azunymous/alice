@@ -51,6 +51,9 @@ profiles:
     kustomize:
       path: ./platform/dependencies/redis/distributed
 - name: andromeda
+  patches:
+    - op: remove
+      path: /build
   deploy:
     kustomize:
       path: ./platform/andromeda

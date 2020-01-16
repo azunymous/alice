@@ -1,5 +1,6 @@
-namespace: andromeda-tools
+namespace: andromeda-production
 resources:
   - aggregator
   - collector
+  - web
   - namespace.yaml
