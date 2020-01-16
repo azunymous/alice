@@ -1,7 +1,6 @@
 TODO
-- Add production deployment
-- Reorganize directory structure
 - Add admin tools
+- Add CRD and Operator
 
 - Add https and TLS with certmagic
 - Add captcha via captchouli?
